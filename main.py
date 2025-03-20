@@ -4,12 +4,23 @@ Main entry point for the Reddit Meme Generator.
 import os
 import sys
 import logging
+import dotenv
 from typing import Optional, Tuple, List
 
 from reddit_api import RedditMemeAPI
 from image_editor import MemeEditor
 from config_manager import ConfigManager
 from ui import MemeGeneratorUI
+
+# Optional import for AI features
+try:
+    from ai_meme_generator import AIMemeGenerator
+    AI_AVAILABLE = True
+except ImportError:
+    AI_AVAILABLE = False
+
+# Load environment variables
+dotenv.load_dotenv()
 
 # Set up basic logging
 logging.basicConfig(
@@ -33,6 +44,7 @@ class MemeGeneratorApp:
         # These will be initialized on demand
         self.reddit_api = None
         self.image_editor = None
+        self.ai_generator = None
         
         # Initialize image editor
         image_config = self.config_manager.get_image_editor_config()
@@ -41,7 +53,42 @@ class MemeGeneratorApp:
             output_dir=image_config.get("output_dir", "generated_memes")
         )
         
+        # Initialize AI generator if available
+        self._init_ai_generator()
+        
         logger.info("Application initialized")
+    
+    def _init_ai_generator(self) -> bool:
+        """
+        Initialize AI meme generator if API key is available.
+        
+        Returns:
+            True if initialized successfully
+        """
+        if not AI_AVAILABLE:
+            logger.warning("AI module not available. Cannot use AI features.")
+            return False
+            
+        # Check if AI is enabled in config
+        ai_config = self.config_manager.get_ai_config()
+        if not ai_config.get("enabled", False):
+            return False
+            
+        # Get OpenAI API key from environment
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            return False
+            
+        try:
+            self.ai_generator = AIMemeGenerator(
+                api_key=api_key,
+                temp_dir=ai_config.get("temp_dir", "temp_images")
+            )
+            logger.info("AI meme generator initialized")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to initialize AI generator: {e}")
+            return False
     
     def _init_reddit_api(self) -> bool:
         """
@@ -191,6 +238,97 @@ class MemeGeneratorApp:
         # Display result
         self.ui.display_generated_meme(output_path)
     
+    def handle_ai_meme_regeneration(self):
+        """Handle AI meme regeneration functionality."""
+        if not AI_AVAILABLE:
+            self.ui.display_error(
+                "AI meme generation is not available. The 'openai' package is missing.\n"
+                "Try running 'pip install openai python-dotenv' to install the required dependencies."
+            )
+            return
+            
+        # Get current AI settings
+        ai_config = self.config_manager.get_ai_config()
+        
+        while True:
+            choice = self.ui.display_ai_menu()
+            
+            if choice == 1:  # Regenerate existing meme
+                self._regenerate_meme_with_ai()
+            elif choice == 2:  # Configure AI settings
+                new_settings = self.ui.configure_ai_settings(ai_config)
+                if self.config_manager.update_ai_settings(
+                    enabled=new_settings["enabled"],
+                    temp_dir=new_settings["temp_dir"],
+                    model=new_settings["model"]
+                ):
+                    self.ui.display_info("AI settings updated successfully!")
+                    
+                    # Re-initialize AI generator with new settings
+                    if new_settings["enabled"]:
+                        if not os.getenv("OPENAI_API_KEY"):
+                            api_key = self.ui.get_openai_api_key()
+                            if api_key:
+                                # Save to .env file
+                                with open(".env", "w") as f:
+                                    f.write(f"OPENAI_API_KEY={api_key}\n")
+                                # Reload environment variables
+                                dotenv.load_dotenv()
+                        
+                        self._init_ai_generator()
+                    
+                else:
+                    self.ui.display_error("Failed to update AI settings.")
+            elif choice == 3:  # Back to main menu
+                break
+    
+    def _regenerate_meme_with_ai(self):
+        """Regenerate an existing meme with AI."""
+        # Check if OpenAI API key is set
+        if not os.getenv("OPENAI_API_KEY"):
+            self.ui.display_info(
+                "OpenAI API key is required for AI features.\n"
+                "Please provide your API key."
+            )
+            api_key = self.ui.get_openai_api_key()
+            if not api_key:
+                return
+                
+            # Save to .env file
+            with open(".env", "w") as f:
+                f.write(f"OPENAI_API_KEY={api_key}\n")
+            # Reload environment variables
+            dotenv.load_dotenv()
+            
+            # Initialize AI generator
+            self._init_ai_generator()
+        
+        # Check if AI generator is available
+        if not self.ai_generator:
+            self.ui.display_error(
+                "AI generator could not be initialized.\n"
+                "Please check your OpenAI API key and try again."
+            )
+            return
+            
+        # Browse existing memes
+        output_dir = self.config_manager.config.get("image_editor", {}).get("output_dir", "generated_memes")
+        selected_meme = self.ui.browse_generated_memes(output_dir)
+        
+        if not selected_meme:
+            return
+            
+        # Use AI to regenerate meme
+        self.ui.display_info("Regenerating meme with AI... This may take a moment.")
+        
+        new_meme_path = self.ai_generator.regenerate_meme(
+            original_meme_path=selected_meme,
+            image_editor=self.image_editor
+        )
+        
+        # Display result
+        self.ui.display_ai_meme_result(selected_meme, new_meme_path)
+    
     def run(self):
         """Run the main application loop."""
         self.ui.display_welcome()
@@ -220,6 +358,8 @@ class MemeGeneratorApp:
             elif choice == 5:
                 self.update_reddit_credentials()
             elif choice == 6:
+                self.handle_ai_meme_regeneration()
+            elif choice == 7:
                 running = False
                 self.ui.display_info("Thank you for using Reddit Meme Generator!")
         

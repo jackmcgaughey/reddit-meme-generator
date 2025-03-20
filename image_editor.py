@@ -55,34 +55,41 @@ class MemeEditor:
     
     def generate_meme(
         self, 
-        image_url: str, 
+        image_path: str, 
         top_text: str = "", 
         bottom_text: str = "",
         text_color: Tuple[int, int, int] = (255, 255, 255),  # white
         outline_color: Tuple[int, int, int] = (0, 0, 0),     # black
-        output_filename: Optional[str] = None
+        output_filename: Optional[str] = None,
+        use_local_image: bool = False
     ) -> Optional[str]:
         """
         Generate a meme by adding text to an image.
         
         Args:
-            image_url: URL of the image to use as base
+            image_path: URL or local path of the image to use as base
             top_text: Text to add at the top of the image
             bottom_text: Text to add at the bottom of the image
             text_color: RGB color tuple for the text
             outline_color: RGB color tuple for the text outline
             output_filename: Optional custom filename, if None uses a UUID
+            use_local_image: If True, image_path is treated as a local file path
             
         Returns:
             Path to the generated meme image or None if failed
         """
         try:
-            # Download the image
-            logger.info(f"Downloading image: {image_url}")
-            response = requests.get(image_url, timeout=10)
-            response.raise_for_status()
-            
-            img = Image.open(BytesIO(response.content))
+            # Get the image
+            if use_local_image:
+                # Load from local file
+                logger.info(f"Loading local image: {image_path}")
+                img = Image.open(image_path)
+            else:
+                # Download from URL
+                logger.info(f"Downloading image: {image_path}")
+                response = requests.get(image_path, timeout=10)
+                response.raise_for_status()
+                img = Image.open(BytesIO(response.content))
             
             # Get image dimensions
             width, height = img.size

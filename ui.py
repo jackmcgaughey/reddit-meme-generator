@@ -54,14 +54,15 @@ class MemeGeneratorUI:
         print("3. Generate Custom Meme")
         print("4. View Generated Memes")
         print("5. Update Reddit API Credentials")
-        print("6. Exit")
+        print("6. AI Meme Regeneration")
+        print("7. Exit")
         
         while True:
             try:
-                choice = int(input("\nEnter your choice (1-6): "))
-                if 1 <= choice <= 6:
+                choice = int(input("\nEnter your choice (1-7): "))
+                if 1 <= choice <= 7:
                     return choice
-                print("Invalid choice. Please enter a number between 1 and 6.")
+                print("Invalid choice. Please enter a number between 1 and 7.")
             except ValueError:
                 print("Please enter a valid number.")
     
@@ -291,4 +292,116 @@ class MemeGeneratorUI:
         print("\nINFO")
         print("-" * 30)
         print(message)
+        input("\nPress Enter to continue...")
+    
+    def get_openai_api_key(self) -> str:
+        """
+        Prompt user for OpenAI API key.
+        
+        Returns:
+            OpenAI API key
+        """
+        print("\nOpenAI API Key")
+        print("-" * 30)
+        print("An OpenAI API key is required for AI-powered meme generation.")
+        print("You can get one at: https://platform.openai.com/api-keys")
+        print("This will be stored in your .env file, not in config.json\n")
+        
+        api_key = input("Enter your OpenAI API key: ").strip()
+        return api_key
+    
+    def display_ai_menu(self) -> int:
+        """
+        Display AI meme generation menu and get user choice.
+        
+        Returns:
+            User's menu choice as int
+        """
+        print("\nAI Meme Regeneration")
+        print("-" * 30)
+        print("1. Regenerate Existing Meme with AI")
+        print("2. Configure AI Settings")
+        print("3. Back to Main Menu")
+        
+        while True:
+            try:
+                choice = int(input("\nEnter your choice (1-3): "))
+                if 1 <= choice <= 3:
+                    return choice
+                print("Invalid choice. Please enter a number between 1 and 3.")
+            except ValueError:
+                print("Please enter a valid number.")
+    
+    def configure_ai_settings(self, current_settings: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Configure AI settings.
+        
+        Args:
+            current_settings: Current AI settings
+            
+        Returns:
+            Updated settings dictionary
+        """
+        print("\nAI Settings")
+        print("-" * 30)
+        print(f"Current status: {'Enabled' if current_settings.get('enabled', False) else 'Disabled'}")
+        print(f"Model: {current_settings.get('model', 'gpt-4o')}")
+        
+        # Toggle enabled status
+        toggle = input("\nEnable AI features? (y/n): ").strip().lower()
+        enabled = toggle == 'y'
+        
+        # Select model
+        print("\nAvailable Models:")
+        print("1. GPT-4o (Best quality, requires subscription)")
+        print("2. GPT-3.5 Turbo (Faster, less expensive)")
+        
+        model = current_settings.get('model', 'gpt-4o')
+        model_choice = input("\nSelect model (1-2, Enter to keep current): ").strip()
+        if model_choice == '1':
+            model = 'gpt-4o'
+        elif model_choice == '2':
+            model = 'gpt-3.5-turbo'
+        
+        return {
+            "enabled": enabled,
+            "model": model,
+            "temp_dir": current_settings.get('temp_dir', 'temp_images')
+        }
+    
+    def display_ai_meme_result(self, original_path: str, new_path: Optional[str]):
+        """
+        Display information about an AI-generated meme.
+        
+        Args:
+            original_path: Path to the original meme
+            new_path: Path to the new meme or None if generation failed
+        """
+        if new_path and os.path.exists(new_path):
+            print("\nAI Meme Generated Successfully!")
+            print("-" * 30)
+            print(f"Original meme: {original_path}")
+            print(f"New meme saved to: {new_path}")
+            
+            # Try to open the meme with the default image viewer
+            try:
+                if os.name == 'nt':  # Windows
+                    os.startfile(new_path)
+                elif os.name == 'posix':  # macOS and Linux
+                    import subprocess
+                    if os.uname().sysname == 'Darwin':  # macOS
+                        subprocess.run(['open', new_path], check=True)
+                    else:  # Linux
+                        subprocess.run(['xdg-open', new_path], check=True)
+                
+                print("The AI-generated meme has been opened in your default image viewer.")
+            except Exception as e:
+                print(f"Could not open the image automatically: {e}")
+                print("Please open it manually from the path above.")
+        else:
+            print("\nAI Meme Generation Failed")
+            print("-" * 30)
+            print("There was an error generating your AI meme.")
+            print("Please check if your OpenAI API key is valid and try again.")
+        
         input("\nPress Enter to continue...") 

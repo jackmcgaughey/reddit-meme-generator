@@ -40,6 +40,11 @@ class ConfigManager:
                 "font_path": "",  # Will auto-detect system fonts if empty
                 "output_dir": "generated_memes"
             },
+            "ai": {
+                "enabled": False,
+                "temp_dir": "temp_images",
+                "model": "gpt-4o"
+            },
             "default_subreddits": [
                 "memes",
                 "dankmemes",
@@ -67,6 +72,13 @@ class ConfigManager:
             with open(self.config_file, 'r') as f:
                 config = json.load(f)
             logger.info(f"Loaded configuration from {self.config_file}")
+            
+            # Add AI settings if not present (for backward compatibility)
+            if "ai" not in config:
+                config["ai"] = default_config["ai"]
+                self.config = config
+                self.save_config()
+                
             return config
         except Exception as e:
             logger.error(f"Error loading config: {e}. Using defaults.")
@@ -153,4 +165,41 @@ class ConfigManager:
         return self.config.get("image_editor", {
             "font_path": "",
             "output_dir": "generated_memes"
-        }) 
+        })
+    
+    def get_ai_config(self) -> Dict[str, Any]:
+        """Get AI configuration."""
+        return self.config.get("ai", {
+            "enabled": False,
+            "temp_dir": "temp_images",
+            "model": "gpt-4o"
+        })
+    
+    def update_ai_settings(self, enabled: bool, temp_dir: Optional[str] = None, model: Optional[str] = None) -> bool:
+        """
+        Update AI settings.
+        
+        Args:
+            enabled: Whether AI features are enabled
+            temp_dir: Directory for temporary image storage
+            model: OpenAI model to use
+            
+        Returns:
+            True if updated successfully
+        """
+        if "ai" not in self.config:
+            self.config["ai"] = {
+                "enabled": False,
+                "temp_dir": "temp_images",
+                "model": "gpt-4o"
+            }
+        
+        self.config["ai"]["enabled"] = enabled
+        
+        if temp_dir:
+            self.config["ai"]["temp_dir"] = temp_dir
+            
+        if model:
+            self.config["ai"]["model"] = model
+            
+        return self.save_config() 
