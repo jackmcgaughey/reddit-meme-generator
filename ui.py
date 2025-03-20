@@ -597,12 +597,15 @@ class MemeGeneratorUI:
         Returns:
             str: The band name
         """
-        print("\n" + "-" * 50)
-        print("BAND SELECTION".center(50))
-        print("-" * 50)
-        print("Enter the name of a band for your meme (leave empty to skip):")
+        print("\n" + "-" * 60)
+        print("BAND SELECTION FOR MEME GENERATION".center(60))
+        print("-" * 60)
+        print("Enter the name of a band for your meme.\n")
+        print("We'll search for images related to the band to use as meme templates.")
+        print("Popular bands like 'Metallica', 'Beatles', or 'Queen' will yield better results.")
+        print("(Leave empty to go back)")
         
-        return input("Band name: ").strip()
+        return input("\nBand name: ").strip()
     
     def get_search_keyword(self, prompt="Enter search keyword: ") -> str:
         """

@@ -276,14 +276,17 @@ class MemeGeneratorApp:
             try:
                 if os.name == 'nt':  # Windows
                     os.startfile(selected_meme)
+                    self.ui.display_info(f"Opened meme: {selected_meme}")
                 elif os.name == 'posix':  # macOS and Linux
                     import subprocess
                     if os.uname().sysname == 'Darwin':  # macOS
                         subprocess.run(['open', selected_meme], check=True)
+                        self.ui.display_info(f"Opened meme: {selected_meme}")
                     else:  # Linux
                         subprocess.run(['xdg-open', selected_meme], check=True)
+                        self.ui.display_info(f"Opened meme: {selected_meme}")
             except Exception as e:
-                self.ui.display_error(f"Could not open the image: {e}")
+                self.ui.display_error(f"Could not open the image: {e}\nPath: {selected_meme}")
     
     def _handle_meme_selection(self, title: str, image_url: str):
         """
@@ -369,7 +372,7 @@ class MemeGeneratorApp:
             return
             
         # Let the user choose to upload an image or search for one
-        choice = input("Upload image (1) or search for guitar image (2)? ")
+        choice = input("Upload image (1) or search for band-related image (2)? ")
         
         image_url = None
         title = None
@@ -378,18 +381,23 @@ class MemeGeneratorApp:
             image_url = input("Enter path to local image or URL: ")
             title = f"Custom {band_name} meme"
         else:
-            # Search for a guitar image
+            # Search for a band-related image
             try:
-                memes = self.reddit_api.search_guitar_memes("guitar", limit=10)
+                self.ui.display_info(f"Searching for images related to '{band_name}'...")
+                memes = self.reddit_api.search_band_images(band_name, limit=10)
                 if not memes:
-                    self.ui.display_error("No guitar images found. Please try again.")
-                    return
+                    self.ui.display_info(f"No images found specifically for '{band_name}', falling back to guitar images...")
+                    memes = self.reddit_api.search_guitar_memes("guitar", limit=10)
+                    if not memes:
+                        self.ui.display_error("No images found. Please try again.")
+                        return
                     
                 title, image_url = self.ui.select_meme(memes)
                 if not title or not image_url:
                     return
             except Exception as e:
-                self.ui.display_error(f"Error searching for guitar images: {str(e)}")
+                logger.error(f"Error searching for band images: {str(e)}")
+                self.ui.display_error(f"Error searching for images: {str(e)}")
                 return
         
         # Generate band-themed meme
@@ -629,7 +637,7 @@ class MemeGeneratorApp:
                         self.ui.display_error(f"Failed to generate meme: {str(e)}")
                 
                 elif option == "View generated memes":
-                    self.ui.browse_generated_memes(self.image_editor.output_dir)
+                    self.view_generated_memes()
                 
                 elif option == "Guitar/Band memes":
                     self.handle_guitar_band_memes()

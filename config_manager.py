@@ -160,6 +160,10 @@ class ConfigManager:
         """Get list of default subreddits."""
         return self.config.get("default_subreddits", ["memes", "dankmemes"])
     
+    def get_default_categories(self) -> list:
+        """Get list of default categories for browsing Reddit."""
+        return self.config.get("default_categories", ["hot", "new", "top", "rising"])
+    
     def get_guitar_subreddits(self) -> list:
         """Get list of guitar-related subreddits."""
         return self.config.get("guitar_subreddits", [

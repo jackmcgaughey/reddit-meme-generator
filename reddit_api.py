@@ -510,4 +510,172 @@ class RedditMemeAPI:
             
         except Exception as e:
             logger.error(f"Error fetching from r/{subreddit_name}: {str(e)}")
-            return [] 
+            return []
+            
+    def search_band_images(self, band_name: str, limit: int = 10) -> List[Tuple[str, str, int, str, str]]:
+        """
+        Search for images related to a specific band across Reddit.
+        
+        Args:
+            band_name: Name of the band to search for
+            limit: Maximum number of results to return
+            
+        Returns:
+            List of tuples (title, image_url, score, subreddit, post_id)
+        """
+        if not self.reddit:
+            self._check_credentials()
+            
+        results = []
+        
+        # Create a list of music-related subreddits to search in
+        music_subreddits = [
+            "Music",
+            "listentothis",
+            "IndieFolk",
+            "Metal",
+            "Rock",
+            "AlternativeRock",
+            "ClassicRock",
+            "HipHopImages",
+            "FolkPunk",
+            "Punk",
+            "Jazz",
+            "Emo",
+            "PostRock",
+            "Blues",
+            "ElectronicMusic",
+            "Rap",
+            "IndieHeads",
+            "country"
+        ]
+        
+        # Try to find if there's a subreddit dedicated to the band
+        try:
+            # Sanitize band name for search
+            sanitized_band_name = band_name.replace(" ", "").lower()
+            
+            # Check if a specific subreddit exists for this band
+            band_subreddit = None
+            try:
+                sub = self.reddit.subreddit(sanitized_band_name)
+                if hasattr(sub, 'display_name'):
+                    band_subreddit = sub.display_name
+                    music_subreddits.insert(0, band_subreddit)  # Add it to the front of the list
+                    logger.info(f"Found dedicated subreddit for {band_name}: r/{band_subreddit}")
+            except Exception:
+                logger.info(f"No dedicated subreddit found for {band_name}")
+            
+            # First strategy: search in the band's subreddit if it exists
+            if band_subreddit:
+                search_results = self.reddit.subreddit(band_subreddit).search(
+                    "site:i.redd.it OR site:imgur.com", 
+                    sort="hot", 
+                    time_filter="all",
+                    limit=limit * 2
+                )
+                
+                for post in search_results:
+                    if not hasattr(post, 'url'):
+                        continue
+                        
+                    # Check if it's an image URL
+                    url = post.url
+                    if not self._is_image_url(url):
+                        continue
+                        
+                    results.append((
+                        post.title,
+                        url,
+                        post.score,
+                        str(post.subreddit),
+                        post.id
+                    ))
+                    
+                    if len(results) >= limit:
+                        break
+            
+            # Second strategy: search all music subreddits
+            if len(results) < limit:
+                subreddit_string = "+".join(music_subreddits)
+                
+                search_results = self.reddit.subreddit(subreddit_string).search(
+                    f"\"{band_name}\" site:i.redd.it OR site:imgur.com", 
+                    sort="relevance", 
+                    time_filter="all",
+                    limit=limit * 3
+                )
+                
+                for post in search_results:
+                    if not hasattr(post, 'url'):
+                        continue
+                        
+                    # Check if it's an image URL
+                    url = post.url
+                    if not self._is_image_url(url):
+                        continue
+                    
+                    # Check for duplicates
+                    if any(result[4] == post.id for result in results):
+                        continue
+                        
+                    results.append((
+                        post.title,
+                        url,
+                        post.score,
+                        str(post.subreddit),
+                        post.id
+                    ))
+                    
+                    if len(results) >= limit:
+                        break
+            
+            # Third strategy: broader search across all of Reddit
+            if len(results) < limit:
+                search_results = self.reddit.subreddit("all").search(
+                    f"\"{band_name}\" site:i.redd.it OR site:imgur.com", 
+                    sort="relevance", 
+                    time_filter="all",
+                    limit=(limit - len(results)) * 3
+                )
+                
+                for post in search_results:
+                    if not hasattr(post, 'url'):
+                        continue
+                        
+                    # Check if it's an image URL
+                    url = post.url
+                    if not self._is_image_url(url):
+                        continue
+                        
+                    # Check for duplicates
+                    if any(result[4] == post.id for result in results):
+                        continue
+                        
+                    results.append((
+                        post.title,
+                        url,
+                        post.score,
+                        str(post.subreddit),
+                        post.id
+                    ))
+                    
+                    if len(results) >= limit:
+                        break
+            
+            # If we still don't have enough images, fall back to guitar images
+            if len(results) < limit and len(results) == 0:
+                logger.info(f"No band-specific images found for {band_name}, falling back to guitar images.")
+                guitar_results = self.search_guitar_memes(limit=limit)
+                results.extend(guitar_results[:limit - len(results)])
+            
+            logger.info(f"Found {len(results)} images for band '{band_name}'")
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error searching for band images: {str(e)}")
+            # Fall back to guitar images if we encounter an error
+            try:
+                return self.search_guitar_memes(limit=limit)
+            except:
+                return [] 

@@ -53,6 +53,33 @@ class AIMemeGenerator:
             logger.error(f"Failed to initialize OpenAI client: {e}")
             self.client = None
     
+    def is_api_key_configured(self) -> bool:
+        """
+        Check if the OpenAI API key is configured.
+        
+        Returns:
+            bool: True if the API key is configured, False otherwise
+        """
+        return self.client is not None
+    
+    def set_api_key(self, api_key: str) -> bool:
+        """
+        Set or update the OpenAI API key.
+        
+        Args:
+            api_key: The OpenAI API key
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            self.client = OpenAI(api_key=api_key)
+            logger.info("OpenAI API key updated successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update OpenAI client with new API key: {e}")
+            return False
+    
     def extract_image_from_meme(self, meme_path: str) -> Optional[str]:
         """
         Extract the base image from a meme by removing text.
@@ -190,9 +217,9 @@ class AIMemeGenerator:
         
         # Build the prompt
         system_prompt = f"""
-        You are a witty meme generator specialized in creating music and band humor. 
+        You are a asshole meme generator specialized in creating music and band humor like a polically incorrect out of touch 50 year old white man. 
         Your task is to create funny top and bottom text for a meme about the band "{band_name}".
-        The humor should reference their music style, famous songs, band members, or iconic moments.
+        These memes need to make sense within the context of the image, also it needs to be funny and make sense.The humor should reference their music style, famous songs, band members, or iconic moments, particularly moments that may be controversial or offensive.
         Be creative, clever, and make sure the joke would be understood by fans of {band_name}.
         
         Respond with JSON in the format:
