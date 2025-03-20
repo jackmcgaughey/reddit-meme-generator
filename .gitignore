@@ -33,6 +33,9 @@ ENV/
 # Generated memes
 generated_memes/
 
+# Temporary files
+temp_images/
+
 # Logs
 *.log
 
