@@ -152,12 +152,14 @@ class MemeGeneratorUI:
         keyword = input("\nSearch keyword: ").strip()
         return keyword if keyword else None
     
-    def select_meme(self, memes: List[Tuple[str, str, int, str]]) -> Optional[Tuple[str, str]]:
+    def select_meme(self, memes: List[Tuple]) -> Optional[Tuple[str, str]]:
         """
         Display list of memes and get user selection.
         
         Args:
-            memes: List of (title, image_url, score, identifier) tuples
+            memes: List of meme tuples, either:
+                  (title, image_url, score, identifier) or
+                  (title, image_url, score, subreddit, identifier)
             
         Returns:
             Tuple of (title, image_url) for selected meme or None to go back
@@ -170,11 +172,27 @@ class MemeGeneratorUI:
         print("\nSelect a Meme")
         print("-" * 60)
         
-        for i, (title, url, score, ident) in enumerate(memes, 1):
-            title_short = (title[:57] + "...") if len(title) > 60 else title
-            print(f"{i}. {title_short}")
-            print(f"   Score: {score}, URL: {url[:40]}...")
-            print()
+        for i, meme_tuple in enumerate(memes, 1):
+            # Extract basic info that's common in both tuple formats
+            title = meme_tuple[0]
+            url = meme_tuple[1]
+            score = meme_tuple[2]
+            
+            # Handle subreddit info if available
+            if len(meme_tuple) >= 4:
+                if len(meme_tuple) == 5:  # Format: (title, url, score, subreddit, id)
+                    subreddit = meme_tuple[3]
+                    ident = meme_tuple[4]
+                    title_short = (title[:52] + "...") if len(title) > 55 else title
+                    print(f"{i}. {title_short}")
+                    print(f"   Score: {score}, r/{subreddit}")
+                else:  # Format: (title, url, score, id)
+                    title_short = (title[:57] + "...") if len(title) > 60 else title
+                    print(f"{i}. {title_short}")
+                    print(f"   Score: {score}")
+                
+                print(f"   URL: {url[:40]}..." if len(url) > 40 else f"   URL: {url}")
+                print()
         
         print("0. Back")
         
@@ -185,7 +203,7 @@ class MemeGeneratorUI:
                     return None
                 if 1 <= choice <= len(memes):
                     selected = memes[choice-1]
-                    return (selected[0], selected[1])
+                    return (selected[0], selected[1])  # Return (title, url) regardless of tuple format
                 print(f"Invalid choice. Please enter a number between 0 and {len(memes)}.")
             except ValueError:
                 print("Please enter a valid number.")

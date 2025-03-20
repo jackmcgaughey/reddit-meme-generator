@@ -167,9 +167,49 @@ class MemeGeneratorApp:
     def _browse_subreddits(self):
         """Browse memes from popular subreddits."""
         default_subreddits = self.config_manager.get_default_subreddits()
-        subreddit = self.ui.select_subreddit(default_subreddits)
+        
+        # Convert the simple string list to the expected format for select_subreddit
+        formatted_subreddits = [(sub, f"Popular meme subreddit", 0) for sub in default_subreddits]
+        
+        subreddit = self.ui.select_subreddit(formatted_subreddits)
+        if not subreddit:
+            return
         
         category = self.ui.select_category(self.config_manager.get_default_categories())
+        if not category:
+            return
+        
+        try:
+            # This should return (title, url, score, id) tuples
+            memes = self.reddit_api.get_memes_from_subreddit(subreddit, category, limit=10)
+            if not memes:
+                self.ui.display_error(f"No memes found in r/{subreddit} under {category}.")
+                return
+                
+            # The UI's select_meme method now handles different tuple formats
+            title, image_url = self.ui.select_meme(memes)
+            if not title or not image_url:
+                return
+                
+            self._handle_meme_selection(title, image_url)
+        except Exception as e:
+            logger.error(f"Error browsing subreddit: {str(e)}")
+            self.ui.display_error(f"Error browsing subreddit: {str(e)}")
+            
+    def _browse_guitar_subreddits(self):
+        """Browse memes from guitar-related subreddits."""
+        guitar_subreddits = self.config_manager.get_guitar_subreddits()
+        
+        # Convert the simple string list to the expected format for select_subreddit
+        formatted_subreddits = [(sub, f"Guitar-related subreddit", 0) for sub in guitar_subreddits]
+        
+        subreddit = self.ui.select_subreddit(formatted_subreddits)
+        if not subreddit:
+            return
+        
+        category = self.ui.select_category(self.config_manager.get_default_categories())
+        if not category:
+            return
         
         try:
             memes = self.reddit_api.get_memes_from_subreddit(subreddit, category, limit=10)
@@ -177,13 +217,23 @@ class MemeGeneratorApp:
                 self.ui.display_error(f"No memes found in r/{subreddit} under {category}.")
                 return
                 
+            # The UI's select_meme method now handles different tuple formats
             title, image_url = self.ui.select_meme(memes)
             if not title or not image_url:
                 return
                 
-            self._handle_meme_selection(title, image_url)
+            # Let user choose a band for this meme
+            band_name = self.ui.get_band_name()
+            if not band_name:
+                # If no band name provided, proceed with regular meme generation
+                self._handle_meme_selection(title, image_url)
+            else:
+                # Generate band-themed meme
+                self._handle_band_meme_selection(title, image_url, band_name)
+                
         except Exception as e:
-            self.ui.display_error(f"Error browsing subreddit: {str(e)}")
+            logger.error(f"Error browsing guitar subreddit: {str(e)}")
+            self.ui.display_error(f"Error browsing guitar subreddit: {str(e)}")
 
     def _search_memes(self):
         """Search for memes by keyword."""
@@ -193,17 +243,20 @@ class MemeGeneratorApp:
             return
             
         try:
+            # The search_memes method returns 5-element tuples
             memes = self.reddit_api.search_memes(keyword, limit=10)
             if not memes:
                 self.ui.display_error(f"No memes found for keyword '{keyword}'.")
                 return
                 
+            # The UI's select_meme method now handles both tuple formats
             title, image_url = self.ui.select_meme(memes)
             if not title or not image_url:
                 return
                 
             self._handle_meme_selection(title, image_url)
         except Exception as e:
+            logger.error(f"Error searching for memes: {str(e)}")
             self.ui.display_error(f"Error searching for memes: {str(e)}")
 
     def generate_custom_meme(self):
@@ -277,35 +330,6 @@ class MemeGeneratorApp:
             elif option == "Back to main menu":
                 running = False
     
-    def _browse_guitar_subreddits(self):
-        """Browse memes from guitar-related subreddits."""
-        guitar_subreddits = self.config_manager.get_guitar_subreddits()
-        subreddit = self.ui.select_subreddit(guitar_subreddits)
-        
-        category = self.ui.select_category(self.config_manager.get_default_categories())
-        
-        try:
-            memes = self.reddit_api.get_memes_from_subreddit(subreddit, category, limit=10)
-            if not memes:
-                self.ui.display_error(f"No memes found in r/{subreddit} under {category}.")
-                return
-                
-            title, image_url = self.ui.select_meme(memes)
-            if not title or not image_url:
-                return
-                
-            # Let user choose a band for this meme
-            band_name = self.ui.get_band_name()
-            if not band_name:
-                # If no band name provided, proceed with regular meme generation
-                self._handle_meme_selection(title, image_url)
-            else:
-                # Generate band-themed meme
-                self._handle_band_meme_selection(title, image_url, band_name)
-                
-        except Exception as e:
-            self.ui.display_error(f"Error browsing guitar subreddit: {str(e)}")
-    
     def _search_guitar_memes(self):
         """Search for guitar-related memes."""
         keyword = self.ui.get_search_keyword("Enter guitar-related search term: ")
@@ -314,11 +338,13 @@ class MemeGeneratorApp:
             keyword = "guitar"
             
         try:
+            # The search_guitar_memes method also returns 5-element tuples
             memes = self.reddit_api.search_guitar_memes(keyword, limit=10)
             if not memes:
                 self.ui.display_error(f"No guitar memes found for keyword '{keyword}'.")
                 return
                 
+            # The UI's select_meme method now handles both tuple formats
             title, image_url = self.ui.select_meme(memes)
             if not title or not image_url:
                 return
@@ -331,8 +357,8 @@ class MemeGeneratorApp:
             else:
                 # Generate band-themed meme
                 self._handle_band_meme_selection(title, image_url, band_name)
-                
         except Exception as e:
+            logger.error(f"Error searching for guitar memes: {str(e)}")
             self.ui.display_error(f"Error searching for guitar memes: {str(e)}")
     
     def _generate_band_meme(self):

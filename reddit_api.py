@@ -435,4 +435,79 @@ class RedditMemeAPI:
         if self.reddit:
             return True
             
-        raise ValueError("Reddit API credentials not configured. Please configure them before using this method.") 
+        raise ValueError("Reddit API credentials not configured. Please configure them before using this method.")
+
+    def get_memes_from_subreddit(
+        self, 
+        subreddit_name: str,
+        category: str = "hot",
+        limit: int = 25
+    ) -> List[Tuple[str, str, int, str, str]]:
+        """
+        Fetch memes from a specific subreddit.
+        
+        Args:
+            subreddit_name: Name of the subreddit to fetch from
+            category: One of 'hot', 'new', 'top', 'rising'
+            limit: Maximum number of posts to fetch
+            
+        Returns:
+            List of tuples: (title, image_url, score, subreddit, post_id)
+        """
+        if not self.reddit:
+            self._check_credentials()
+            
+        results = []
+        logger.info(f"Fetching up to {limit} memes from r/{subreddit_name} ({category})")
+        
+        try:
+            subreddit = self.reddit.subreddit(subreddit_name)
+            
+            # Get posts based on category
+            if category == "hot":
+                posts = subreddit.hot(limit=limit * 2)  # Get more to account for filtering
+            elif category == "new":
+                posts = subreddit.new(limit=limit * 2)
+            elif category == "top":
+                posts = subreddit.top(limit=limit * 2)
+            elif category == "rising":
+                posts = subreddit.rising(limit=limit * 2)
+            else:
+                logger.error(f"Invalid category: {category}")
+                return []
+            
+            # Process each post
+            for post in posts:
+                if not hasattr(post, 'url'):
+                    continue
+                    
+                # Skip stickied posts
+                if post.stickied:
+                    continue
+                    
+                # Check if it's an image URL
+                url = post.url
+                if not self._is_image_url(url):
+                    continue
+                    
+                # Verify the URL is accessible
+                if not self._validate_image_url(url):
+                    continue
+                    
+                results.append((
+                    post.title,
+                    url,
+                    post.score,
+                    str(post.subreddit),
+                    post.id
+                ))
+                
+                if len(results) >= limit:
+                    break
+            
+            logger.info(f"Found {len(results)} memes in r/{subreddit_name}")
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error fetching from r/{subreddit_name}: {str(e)}")
+            return [] 
