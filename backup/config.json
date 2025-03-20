@@ -1,0 +1,53 @@
+{
+  "twitter": {
+    "enabled": true,
+    "consumer_key": "",
+    "consumer_secret": "",
+    "access_token": "",
+    "access_token_secret": "",
+    "accounts": [
+      "9GAG",
+      "DankMemes",
+      "Memeulous"
+    ],
+    "hashtags": [
+      "memes",
+      "dankmemes",
+      "funny"
+    ],
+    "count": 50
+  },
+  "reddit": {
+    "enabled": true,
+    "client_id": "",
+    "client_secret": "",
+    "user_agent": "MemeGenerator/1.0",
+    "subreddits": [
+      "memes",
+      "dankmemes",
+      "wholesomememes"
+    ],
+    "time_filter": "day",
+    "limit": 100,
+    "categories": [
+      "cat",
+      "dog",
+      "programming",
+      "gaming"
+    ],
+    "category_limit": 50
+  },
+  "web_scraping": {
+    "enabled": true,
+    "sources": [
+      "imgur",
+      "knowyourmeme",
+      "9gag"
+    ],
+    "limit_per_source": 20
+  },
+  "image_editor": {
+    "font_path": "arial.ttf",
+    "output_dir": "generated_memes"
+  }
+}
