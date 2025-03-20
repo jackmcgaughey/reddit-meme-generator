@@ -28,7 +28,13 @@ A simple yet powerful tool to discover, generate, and customize memes from Reddi
    ```
    pip install -r requirements.txt
    ```
-3. Run the application:
+3. Copy the template configuration files:
+   ```
+   cp config.json.example config.json
+   cp .env.example .env
+   ```
+4. Configure your API keys (see API Setup below)
+5. Run the application:
    ```
    python main.py
    ```
@@ -49,6 +55,7 @@ The application requires Reddit API credentials to function:
    - Redirect URI: `http://localhost:8000` (this is also a placeholder)
 4. Click "Create app"
 5. Note your `client_id` (displayed under your app name) and `client_secret`
+6. Add these credentials to your local `config.json` file or provide them when prompted at first launch
 
 The application will prompt you to enter these credentials on first launch.
 
@@ -58,13 +65,17 @@ To use the AI meme regeneration feature:
 
 1. Create an account at [OpenAI](https://platform.openai.com)
 2. Generate an API key from your account dashboard
-3. In the application, select "AI Meme Regeneration" from the main menu and choose "Update OpenAI API Key"
-4. Enter your API key when prompted
+3. Add your API key to the `.env` file:
+   ```
+   OPENAI_API_KEY=your_api_key_here
+   ```
+4. Alternatively, in the application, select "AI Meme Regeneration" from the main menu and choose "Update OpenAI API Key"
 
-Alternatively, create a `.env` file in the project root with your key:
-```
-OPENAI_API_KEY=your_api_key_here
-```
+## Security Notes
+
+- **API Keys**: Never commit your API keys or credentials to version control
+- **Configuration**: The `config.json` and `.env` files are excluded from git tracking for security
+- **Templates**: Use the provided example files as templates for your local configuration
 
 ## Usage
 
@@ -93,6 +104,7 @@ OPENAI_API_KEY=your_api_key_here
 - `ui.py` - Command-line user interface
 - `ai_meme_generator.py` - AI-powered meme caption generation
 - `.env.example` - Template for environment variables
+- `config.json.example` - Template for application configuration
 
 ## License
 
