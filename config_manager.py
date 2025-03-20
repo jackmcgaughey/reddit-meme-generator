@@ -160,6 +160,16 @@ class ConfigManager:
         """Get list of default subreddits."""
         return self.config.get("default_subreddits", ["memes", "dankmemes"])
     
+    def get_guitar_subreddits(self) -> list:
+        """Get list of guitar-related subreddits."""
+        return self.config.get("guitar_subreddits", [
+            "guitar", 
+            "guitarmemes", 
+            "guitarcirclejerk", 
+            "guitarplaying", 
+            "guitars"
+        ])
+    
     def get_image_editor_config(self) -> Dict[str, str]:
         """Get image editor configuration."""
         return self.config.get("image_editor", {

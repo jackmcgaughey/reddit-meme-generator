@@ -132,6 +132,169 @@ class RedditMemeAPI:
             logger.error(f"Error searching for '{keyword}' memes: {e}")
             return memes
     
+    def search_memes(self, keyword: str, limit: int = 10) -> List[Tuple[str, str, int, str, str]]:
+        """
+        Search for memes based on keyword.
+        
+        Args:
+            keyword: Search term
+            limit: Maximum number of results to return
+            
+        Returns:
+            List of tuples (title, image_url, score, subreddit, post_id)
+        """
+        if not self.reddit:
+            self._check_credentials()
+            
+        results = []
+        
+        try:
+            logger.info(f"Searching for '{keyword}' across Reddit")
+            
+            # Search across all of Reddit
+            search_results = self.reddit.subreddit("all").search(
+                f"{keyword} site:i.redd.it OR site:imgur.com", 
+                sort="relevance", 
+                time_filter="month", 
+                limit=limit * 2  # Get more than we need to filter non-images
+            )
+            
+            for post in search_results:
+                if not hasattr(post, 'url'):
+                    continue
+                    
+                # Check if it's an image URL
+                url = post.url
+                if not self._is_image_url(url):
+                    continue
+                    
+                results.append((
+                    post.title,
+                    url,
+                    post.score,
+                    str(post.subreddit),
+                    post.id
+                ))
+                
+                if len(results) >= limit:
+                    break
+            
+            logger.info(f"Found {len(results)} memes for keyword '{keyword}'")
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error searching for memes: {str(e)}")
+            return []
+    
+    def search_guitar_memes(self, keyword: str = "guitar", limit: int = 10) -> List[Tuple[str, str, int, str, str]]:
+        """
+        Search for guitar-related memes based on keyword.
+        
+        Args:
+            keyword: Guitar-related search term (default: "guitar")
+            limit: Maximum number of results to return
+            
+        Returns:
+            List of tuples (title, image_url, score, subreddit, post_id)
+        """
+        if not self.reddit:
+            self._check_credentials()
+            
+        results = []
+        guitar_subreddits = [
+            "guitar", 
+            "guitarcirclejerk", 
+            "guitars", 
+            "guitarplaying", 
+            "guitarmemes",
+            "guitarpedals", 
+            "acousticguitar", 
+            "bassguitar",
+            "guitarlessons"
+        ]
+        
+        subreddit_string = "+".join(guitar_subreddits)
+        enhanced_keyword = f"{keyword}"
+        
+        try:
+            logger.info(f"Searching for '{enhanced_keyword}' in guitar subreddits")
+            
+            # Search across all guitar subreddits
+            search_results = self.reddit.subreddit(subreddit_string).search(
+                f"{enhanced_keyword} site:i.redd.it OR site:imgur.com", 
+                sort="relevance", 
+                time_filter="year",  # Extend time to find more guitar memes
+                limit=limit * 3  # Get more than we need to filter non-images
+            )
+            
+            for post in search_results:
+                if not hasattr(post, 'url'):
+                    continue
+                    
+                # Check if it's an image URL
+                url = post.url
+                if not self._is_image_url(url):
+                    continue
+                    
+                results.append((
+                    post.title,
+                    url,
+                    post.score,
+                    str(post.subreddit),
+                    post.id
+                ))
+                
+                if len(results) >= limit:
+                    break
+            
+            # If we don't have enough results, try another search strategy
+            if len(results) < limit:
+                # Try a broader search with guitar-related terms
+                broader_terms = ["fender", "gibson", "stratocaster", "les paul", 
+                                "amp", "pedal", "musician", "band", "rock"]
+                
+                for term in broader_terms:
+                    if len(results) >= limit:
+                        break
+                        
+                    additional_results = self.reddit.subreddit("all").search(
+                        f"{term} {keyword} site:i.redd.it OR site:imgur.com", 
+                        sort="relevance", 
+                        time_filter="year",
+                        limit=(limit - len(results)) * 2
+                    )
+                    
+                    for post in additional_results:
+                        if not hasattr(post, 'url'):
+                            continue
+                            
+                        # Check if it's an image URL
+                        url = post.url
+                        if not self._is_image_url(url):
+                            continue
+                            
+                        # Check for duplicates
+                        if any(result[4] == post.id for result in results):
+                            continue
+                            
+                        results.append((
+                            post.title,
+                            url,
+                            post.score,
+                            str(post.subreddit),
+                            post.id
+                        ))
+                        
+                        if len(results) >= limit:
+                            break
+            
+            logger.info(f"Found {len(results)} guitar memes for keyword '{keyword}'")
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error searching for guitar memes: {str(e)}")
+            return []
+    
     def get_trending_meme_subreddits(self, limit: int = 10) -> List[Tuple[str, str, int]]:
         """
         Get a list of trending meme-related subreddits.
@@ -171,6 +334,51 @@ class RedditMemeAPI:
                 ('MemeEconomy', 'Meme economy', 0),
                 ('AdviceAnimals', 'Advice animals', 0)
             ]
+    
+    def get_guitar_subreddits(self, limit: int = 10) -> List[str]:
+        """
+        Get a list of guitar-related subreddits.
+        
+        Returns:
+            List of subreddit names
+        """
+        if not self.reddit:
+            self._check_credentials()
+            
+        # Static list of guitar-related subreddits
+        default_subreddits = [
+            "guitar",
+            "guitarmemes",
+            "guitarcirclejerk",
+            "guitars",
+            "guitarplaying",
+            "acousticguitar",
+            "guitarpedals",
+            "bassguitar",
+            "guitarlessons",
+            "guitarcovers"
+        ]
+        
+        # Try to discover additional guitar-related subreddits
+        try:
+            search_results = self.reddit.subreddits.search("guitar", limit=20)
+            discovered_subreddits = []
+            
+            for subreddit in search_results:
+                if hasattr(subreddit, 'display_name') and "guitar" in subreddit.display_name.lower():
+                    discovered_subreddits.append(subreddit.display_name)
+            
+            # Combine default and discovered subreddits, remove duplicates
+            all_subreddits = list(set(default_subreddits + discovered_subreddits))
+            
+            # Sort by relevance (default subreddits first, then alphabetically)
+            sorted_subreddits = sorted(all_subreddits, 
+                                     key=lambda x: (x not in default_subreddits, x.lower()))
+            
+            return sorted_subreddits[:limit]
+        except Exception as e:
+            logger.error(f"Error discovering guitar subreddits: {str(e)}")
+            return default_subreddits[:limit]
     
     def _is_image_url(self, url: str) -> bool:
         """Check if URL points to an image."""

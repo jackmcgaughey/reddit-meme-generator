@@ -15,6 +15,8 @@ from typing import Tuple, Optional, Dict, Any
 from PIL import Image
 from openai import OpenAI
 from dotenv import load_dotenv
+import uuid
+import json
 
 # Set up basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -93,37 +95,51 @@ class AIMemeGenerator:
             logger.error(f"Error extracting image from meme: {e}")
             return None
     
-    def generate_meme_text(self, image_path: str) -> Tuple[Optional[str], Optional[str]]:
+    def generate_meme_text(self, image_path: str, context: Optional[str] = None) -> Tuple[str, str]:
         """
-        Generate meme text using OpenAI's vision capabilities.
+        Generate meme text (top and bottom) for an image using OpenAI API.
         
         Args:
-            image_path: Path to the image to generate text for
+            image_path: Path to the image file or URL
+            context: Optional context about the meme or image
             
         Returns:
-            Tuple of (top_text, bottom_text) or (None, None) if failed
+            Tuple containing top and bottom text for the meme
         """
         if not self.client:
             logger.error("OpenAI client not initialized. Cannot generate text.")
-            return None, None
-        
-        try:
-            # Encode image to base64
-            with open(image_path, "rb") as image_file:
-                base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+            raise ValueError("OpenAI API key is not configured")
             
-            # Call OpenAI API
+        # Extract image data or download it if it's a URL
+        image_data = self._extract_image_data(image_path)
+        
+        # Prepare the payload for OpenAI API
+        base64_image = base64.b64encode(image_data).decode('utf-8')
+        
+        # Build the prompt
+        system_prompt = """
+        You are a witty meme generator. Your task is to create humorous top and bottom text for a meme image.
+        Be creative, clever, and funny. The text should be concise and fit the meme format.
+        Respond with JSON in the format:
+        {
+            "top_text": "The top text for the meme",
+            "bottom_text": "The bottom text for the meme"
+        }
+        """
+        
+        user_prompt = "Generate funny top and bottom text for this meme image."
+        if context:
+            user_prompt += f" Context: {context}"
+            
+        try:
             response = self.client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
+                    {"role": "system", "content": system_prompt},
                     {
-                        "role": "system", 
-                        "content": "You are a humorous meme caption generator. Given an image, create a funny meme with a top text and bottom text. Be witty and relevant to the image content. Return ONLY the text in the format 'TOP TEXT: [your text here]\nBOTTOM TEXT: [your text here]'"
-                    },
-                    {
-                        "role": "user",
+                        "role": "user", 
                         "content": [
-                            {"type": "text", "text": "Create a funny meme caption for this image."},
+                            {"type": "text", "text": user_prompt},
                             {
                                 "type": "image_url",
                                 "image_url": {
@@ -133,31 +149,120 @@ class AIMemeGenerator:
                         ]
                     }
                 ],
-                max_tokens=100
+                response_format={"type": "json_object"}
             )
             
-            # Extract the generated text
-            generated_text = response.choices[0].message.content
-            logger.info(f"Generated text: {generated_text}")
+            # Parse the response
+            content = response.choices[0].message.content
+            logger.debug(f"OpenAI response: {content}")
             
-            # Parse the top and bottom text
-            top_text = ""
-            bottom_text = ""
-            
-            # Simple parsing, assumes format "TOP TEXT: ... BOTTOM TEXT: ..."
-            lines = generated_text.strip().split('\n')
-            for line in lines:
-                if line.startswith("TOP TEXT:"):
-                    top_text = line.replace("TOP TEXT:", "").strip()
-                elif line.startswith("BOTTOM TEXT:"):
-                    bottom_text = line.replace("BOTTOM TEXT:", "").strip()
-            
-            return top_text, bottom_text
-            
+            try:
+                result = json.loads(content)
+                top_text = result.get("top_text", "")
+                bottom_text = result.get("bottom_text", "")
+                return top_text, bottom_text
+            except json.JSONDecodeError:
+                logger.error(f"Failed to parse JSON from OpenAI response: {content}")
+                # Fallback to simple text extraction
+                lines = content.strip().split('\n')
+                top_text = lines[0] if lines else ""
+                bottom_text = lines[-1] if len(lines) > 1 else ""
+                return top_text, bottom_text
+                
         except Exception as e:
-            logger.error(f"Error generating meme text: {e}")
-            return None, None
+            logger.error(f"Error generating meme text with OpenAI: {str(e)}")
+            raise
     
+    def generate_band_meme_text(self, band_name: str, context: Optional[str] = None) -> Tuple[str, str]:
+        """
+        Generate band-themed meme text using OpenAI.
+        
+        Args:
+            band_name: Name of the band to reference in the meme
+            context: Optional context about the meme or image
+            
+        Returns:
+            Tuple containing top and bottom text for the band-themed meme
+        """
+        if not self.client:
+            logger.error("OpenAI client not initialized. Cannot generate text.")
+            raise ValueError("OpenAI API key is not configured")
+        
+        # Build the prompt
+        system_prompt = f"""
+        You are a witty meme generator specialized in creating music and band humor. 
+        Your task is to create funny top and bottom text for a meme about the band "{band_name}".
+        The humor should reference their music style, famous songs, band members, or iconic moments.
+        Be creative, clever, and make sure the joke would be understood by fans of {band_name}.
+        
+        Respond with JSON in the format:
+        {{
+            "top_text": "The top text for the meme",
+            "bottom_text": "The bottom text for the meme"
+        }}
+        """
+        
+        user_prompt = f"Generate funny top and bottom text for a meme about {band_name}."
+        if context:
+            user_prompt += f" The meme image shows: {context}"
+        
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                response_format={"type": "json_object"}
+            )
+            
+            # Parse the response
+            content = response.choices[0].message.content
+            logger.debug(f"OpenAI response for band meme: {content}")
+            
+            try:
+                result = json.loads(content)
+                top_text = result.get("top_text", "")
+                bottom_text = result.get("bottom_text", "")
+                return top_text, bottom_text
+            except json.JSONDecodeError:
+                logger.error(f"Failed to parse JSON from OpenAI response: {content}")
+                # Fallback to simple text extraction
+                lines = content.strip().split('\n')
+                top_text = lines[0] if lines else ""
+                bottom_text = lines[-1] if len(lines) > 1 else ""
+                return top_text, bottom_text
+                
+        except Exception as e:
+            logger.error(f"Error generating band meme text with OpenAI: {str(e)}")
+            raise
+    
+    def generate_band_themed_meme(self, image_path: str, band_name: str, 
+                                image_editor, context: Optional[str] = None) -> str:
+        """
+        Generate a complete band-themed meme from an image.
+        
+        Args:
+            image_path: Path to the image file or URL
+            band_name: Name of the band to reference in the meme
+            image_editor: ImageEditor instance to create the final meme
+            context: Optional context about the meme or image
+            
+        Returns:
+            Path to the generated meme image
+        """
+        # Generate band-themed text
+        top_text, bottom_text = self.generate_band_meme_text(band_name, context)
+        
+        # Use the image editor to create the meme
+        output_path = image_editor.generate_meme(
+            image_path=image_path,
+            top_text=top_text,
+            bottom_text=bottom_text
+        )
+        
+        return output_path
+
     def regenerate_meme(self, original_meme_path: str, image_editor) -> Optional[str]:
         """
         Regenerate a meme using AI.
@@ -197,4 +302,54 @@ class AIMemeGenerator:
             
         except Exception as e:
             logger.error(f"Error regenerating meme: {e}")
+            return None
+            
+    def generate_band_meme(self, image_url: str, band_name: str, band_context: str, image_editor) -> Optional[str]:
+        """
+        Generate a band-themed meme from a selected image.
+        
+        Args:
+            image_url: URL of the image to use
+            band_name: Name of the band to reference
+            band_context: Additional context about the band
+            image_editor: MemeEditor instance to create the meme
+            
+        Returns:
+            Path to the generated band meme or None if failed
+        """
+        try:
+            # First download the image
+            response = requests.get(image_url, timeout=10)
+            response.raise_for_status()
+            
+            # Save to temp file
+            temp_image_path = os.path.join(self.temp_dir, f"band_meme_source_{uuid.uuid4().hex[:8]}.jpg")
+            with open(temp_image_path, 'wb') as f:
+                f.write(response.content)
+            
+            logger.info(f"Downloaded image for band meme to: {temp_image_path}")
+            
+            # Generate band-specific meme text
+            top_text, bottom_text = self.generate_band_meme_text(band_name, band_context)
+            if not top_text and not bottom_text:
+                logger.error("Failed to generate band meme text")
+                return None
+            
+            # Generate the meme
+            output_filename = f"band_meme_{band_name.replace(' ', '_').lower()}_{uuid.uuid4().hex[:8]}.jpg"
+            
+            # Use the image editor to create the meme
+            new_meme_path = image_editor.generate_meme(
+                image_path=temp_image_path,
+                top_text=top_text,
+                bottom_text=bottom_text,
+                output_filename=output_filename,
+                use_local_image=True
+            )
+            
+            logger.info(f"Band meme for {band_name} saved to: {new_meme_path}")
+            return new_meme_path
+            
+        except Exception as e:
+            logger.error(f"Error generating band meme: {e}")
             return None 

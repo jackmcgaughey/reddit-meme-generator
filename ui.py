@@ -40,29 +40,39 @@ class MemeGeneratorUI:
         
         return client_id, client_secret
     
-    def display_main_menu(self) -> int:
+    def display_main_menu(self) -> str:
         """
-        Display main menu and get user choice.
+        Display the main menu of options for the meme generator.
         
         Returns:
-            User's menu choice as int
+            str: The selected option
         """
-        print("\nMain Menu")
-        print("-" * 30)
-        print("1. Browse Popular Meme Subreddits")
-        print("2. Search for Memes by Keyword")
-        print("3. Generate Custom Meme")
-        print("4. View Generated Memes")
-        print("5. Update Reddit API Credentials")
-        print("6. AI Meme Regeneration")
-        print("7. Exit")
+        options = [
+            "Browse memes from subreddits",
+            "Search for memes by keyword",
+            "Generate custom meme",
+            "View generated memes",
+            "Guitar/Band memes",
+            "Update Reddit API credentials",
+            "AI Meme Settings",
+            "Exit"
+        ]
         
+        print("\n" + "=" * 50)
+        print("MAIN MENU".center(50))
+        print("=" * 50)
+        
+        for i, option in enumerate(options, 1):
+            print(f"{i}. {option}")
+            
         while True:
             try:
-                choice = int(input("\nEnter your choice (1-7): "))
-                if 1 <= choice <= 7:
-                    return choice
-                print("Invalid choice. Please enter a number between 1 and 7.")
+                choice = input("\nEnter your choice (1-8): ")
+                index = int(choice) - 1
+                if 0 <= index < len(options):
+                    return options[index]
+                else:
+                    print("Invalid choice. Please enter a number between 1 and 8.")
             except ValueError:
                 print("Please enter a valid number.")
     
@@ -311,26 +321,34 @@ class MemeGeneratorUI:
         api_key = input("\nEnter your OpenAI API key: ").strip()
         return api_key
     
-    def display_ai_menu(self) -> int:
+    def display_ai_menu(self) -> str:
         """
-        Display AI meme generation menu and get user choice.
+        Display AI menu options.
         
         Returns:
-            User's menu choice as int
+            str: Selected option
         """
-        print("\nAI Meme Regeneration")
-        print("-" * 30)
-        print("1. Regenerate Existing Meme with AI")
-        print("2. Update OpenAI API Key")
-        print("3. Configure AI Settings")
-        print("4. Back to Main Menu")
+        options = [
+            "Regenerate a meme with AI",
+            "Configure AI settings",
+            "Back to main menu"
+        ]
         
+        print("\n" + "=" * 50)
+        print("AI MEME GENERATOR".center(50))
+        print("=" * 50)
+        
+        for i, option in enumerate(options, 1):
+            print(f"{i}. {option}")
+            
         while True:
             try:
-                choice = int(input("\nEnter your choice (1-4): "))
-                if 1 <= choice <= 4:
-                    return choice
-                print("Invalid choice. Please enter a number between 1 and 4.")
+                choice = input("\nEnter your choice (1-3): ")
+                index = int(choice) - 1
+                if 0 <= index < len(options):
+                    return options[index]
+                else:
+                    print("Invalid choice. Please enter a number between 1 and 3.")
             except ValueError:
                 print("Please enter a valid number.")
     
@@ -406,4 +424,180 @@ class MemeGeneratorUI:
             print("There was an error generating your AI meme.")
             print("Please check if your OpenAI API key is valid and try again.")
         
-        input("\nPress Enter to continue...") 
+        input("\nPress Enter to continue...")
+    
+    def display_guitar_meme_menu(self) -> int:
+        """
+        Display guitar meme generator menu and get user choice.
+        
+        Returns:
+            User's menu choice as int
+        """
+        print("\nGuitar Band Meme Generator")
+        print("-" * 30)
+        print("1. Browse Guitar Subreddits")
+        print("2. Search for Guitar Memes")
+        print("3. AI Generate Band-Themed Meme")
+        print("4. Back to Main Menu")
+        
+        while True:
+            try:
+                choice = int(input("\nEnter your choice (1-4): "))
+                if 1 <= choice <= 4:
+                    return choice
+                print("Invalid choice. Please enter a number between 1 and 4.")
+            except ValueError:
+                print("Please enter a valid number.")
+    
+    def select_guitar_subreddit(self, subreddits: List[Tuple[str, str, int]]) -> Optional[str]:
+        """
+        Display list of guitar subreddits and get user selection.
+        
+        Args:
+            subreddits: List of (subreddit_name, description, subscriber_count) tuples
+            
+        Returns:
+            Selected subreddit name or None to go back
+        """
+        print("\nGuitar-Related Subreddits")
+        print("-" * 60)
+        
+        for i, (name, desc, subs) in enumerate(subreddits, 1):
+            sub_count = f"{subs:,}" if subs > 0 else "N/A"
+            print(f"{i}. r/{name} - {sub_count} subscribers")
+            if desc:
+                print(f"   {desc}")
+            print()
+        
+        print("0. Back to guitar menu")
+        
+        while True:
+            try:
+                choice = int(input("\nSelect a subreddit (0 to go back): "))
+                if choice == 0:
+                    return None
+                if 1 <= choice <= len(subreddits):
+                    return subreddits[choice-1][0]
+                print(f"Invalid choice. Please enter a number between 0 and {len(subreddits)}.")
+            except ValueError:
+                print("Please enter a valid number.")
+    
+    def get_band_info(self) -> Tuple[str, str]:
+        """
+        Prompt user for band name and additional context.
+        
+        Returns:
+            Tuple of (band_name, band_context)
+        """
+        print("\nBand Information for Meme")
+        print("-" * 40)
+        print("Enter information about the band for your meme.")
+        
+        band_name = input("\nBand name: ").strip()
+        while not band_name:
+            print("Band name cannot be empty.")
+            band_name = input("Band name: ").strip()
+        
+        band_context = input("\nAdditional context (optional, e.g. genre, famous song, controversy): ").strip()
+        
+        return band_name, band_context
+    
+    def display_band_meme_result(self, band_name: str, image_path: str, new_path: Optional[str]):
+        """
+        Display information about a band-themed meme.
+        
+        Args:
+            band_name: Name of the band
+            image_path: Path to the original image
+            new_path: Path to the new meme or None if generation failed
+        """
+        if new_path and os.path.exists(new_path):
+            print(f"\n{band_name} Meme Generated Successfully!")
+            print("-" * 40)
+            print(f"Original image: {image_path}")
+            print(f"Meme saved to: {new_path}")
+            
+            # Try to open the meme with the default image viewer
+            try:
+                if os.name == 'nt':  # Windows
+                    os.startfile(new_path)
+                elif os.name == 'posix':  # macOS and Linux
+                    import subprocess
+                    if os.uname().sysname == 'Darwin':  # macOS
+                        subprocess.run(['open', new_path], check=True)
+                    else:  # Linux
+                        subprocess.run(['xdg-open', new_path], check=True)
+                
+                print("The band meme has been opened in your default image viewer.")
+            except Exception as e:
+                print(f"Could not open the image automatically: {e}")
+                print("Please open it manually from the path above.")
+        else:
+            print("\nBand Meme Generation Failed")
+            print("-" * 40)
+            print("There was an error generating your band meme.")
+            print("Please check if your OpenAI API key is valid and try again.")
+        
+        input("\nPress Enter to continue...")
+    
+    def display_guitar_menu(self) -> str:
+        """
+        Display guitar/band meme menu options.
+        
+        Returns:
+            str: Selected option
+        """
+        options = [
+            "Browse guitar subreddits",
+            "Search for guitar memes",
+            "Generate band-themed meme",
+            "Back to main menu"
+        ]
+        
+        print("\n" + "=" * 50)
+        print("GUITAR & BAND MEME GENERATOR".center(50))
+        print("=" * 50)
+        
+        for i, option in enumerate(options, 1):
+            print(f"{i}. {option}")
+            
+        while True:
+            try:
+                choice = input("\nEnter your choice (1-4): ")
+                index = int(choice) - 1
+                if 0 <= index < len(options):
+                    return options[index]
+                else:
+                    print("Invalid choice. Please enter a number between 1 and 4.")
+            except ValueError:
+                print("Please enter a valid number.")
+    
+    def get_band_name(self) -> str:
+        """
+        Prompt the user for a band name.
+        
+        Returns:
+            str: The band name
+        """
+        print("\n" + "-" * 50)
+        print("BAND SELECTION".center(50))
+        print("-" * 50)
+        print("Enter the name of a band for your meme (leave empty to skip):")
+        
+        return input("Band name: ").strip()
+    
+    def get_search_keyword(self, prompt="Enter search keyword: ") -> str:
+        """
+        Get a search keyword from the user.
+        
+        Args:
+            prompt: Custom prompt to display
+            
+        Returns:
+            str: The search keyword
+        """
+        print("\n" + "-" * 50)
+        print("SEARCH".center(50))
+        print("-" * 50)
+        
+        return input(prompt).strip() 

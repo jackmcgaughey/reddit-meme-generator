@@ -6,6 +6,7 @@ import sys
 import logging
 import dotenv
 from typing import Optional, Tuple, List
+import getpass
 
 from reddit_api import RedditMemeAPI
 from image_editor import MemeEditor
@@ -121,71 +122,80 @@ class MemeGeneratorApp:
             self.ui.display_error(f"Failed to initialize Reddit API: {e}")
             return False
     
-    def update_reddit_credentials(self):
-        """Prompt for and update Reddit API credentials."""
-        client_id, client_secret = self.ui.get_reddit_credentials()
+    def _initialize_reddit_api(self):
+        """Initialize the Reddit API with credentials from config."""
+        if not self.config_manager.is_reddit_configured():
+            self.ui.display_info(
+                "Welcome to Reddit Meme Generator!\n\n"
+                "It looks like this is your first time running the application.\n"
+                "You'll need to configure your Reddit API credentials to get started."
+            )
+            self._update_reddit_credentials()
         
-        if client_id and client_secret:
-            if self.config_manager.update_reddit_credentials(client_id, client_secret):
-                self.ui.display_info("Reddit API credentials updated successfully!")
-                # Reset Reddit API to reinitialize with new credentials
-                self.reddit_api = None
-            else:
-                self.ui.display_error("Failed to save Reddit API credentials.")
-        else:
-            self.ui.display_error("Reddit API credentials cannot be empty.")
-    
-    def browse_subreddits(self):
-        """Browse popular meme subreddits."""
-        if not self._init_reddit_api():
-            return
-        
-        # Get trending subreddits
-        subreddits = self.reddit_api.get_trending_meme_subreddits()
-        
-        if not subreddits:
-            self.ui.display_error("Failed to retrieve meme subreddits. Please try again later.")
-            return
-        
-        # Show subreddit selection
-        selected_subreddit = self.ui.select_subreddit(subreddits)
-        if not selected_subreddit:
-            return
-        
-        # Show category selection
-        categories = self.config_manager.config.get("default_categories", 
-                                                 ["hot", "new", "top", "rising"])
-        selected_category = self.ui.select_category(categories)
-        if not selected_category:
-            return
-        
-        # Fetch memes from selected subreddit
-        memes = self.reddit_api.fetch_memes_from_subreddit(
-            subreddit_name=selected_subreddit,
-            category=selected_category
+        credentials = self.config_manager.get_reddit_credentials()
+        self.reddit_api.configure(
+            client_id=credentials["client_id"],
+            client_secret=credentials["client_secret"],
+            user_agent=credentials.get("user_agent", "MemeGenerator/1.0")
         )
+        logger.info("Reddit API initialized successfully")
+
+    def _update_reddit_credentials(self):
+        """Update Reddit API credentials in configuration."""
+        client_id, client_secret = self.ui.get_reddit_credentials()
+        self.config_manager.update_reddit_credentials(client_id, client_secret)
+        self.ui.display_info("Reddit API credentials updated successfully!")
         
-        self._handle_meme_selection(memes)
-    
-    def search_memes(self):
+        # Re-initialize Reddit API with new credentials
+        credentials = self.config_manager.get_reddit_credentials()
+        self.reddit_api.configure(
+            client_id=credentials["client_id"],
+            client_secret=credentials["client_secret"],
+            user_agent=credentials.get("user_agent", "MemeGenerator/1.0")
+        )
+
+    def _browse_subreddits(self):
+        """Browse memes from popular subreddits."""
+        default_subreddits = self.config_manager.get_default_subreddits()
+        subreddit = self.ui.select_subreddit(default_subreddits)
+        
+        category = self.ui.select_category(self.config_manager.get_default_categories())
+        
+        try:
+            memes = self.reddit_api.get_memes_from_subreddit(subreddit, category, limit=10)
+            if not memes:
+                self.ui.display_error(f"No memes found in r/{subreddit} under {category}.")
+                return
+                
+            title, image_url = self.ui.select_meme(memes)
+            if not title or not image_url:
+                return
+                
+            self._handle_meme_selection(title, image_url)
+        except Exception as e:
+            self.ui.display_error(f"Error browsing subreddit: {str(e)}")
+
+    def _search_memes(self):
         """Search for memes by keyword."""
-        if not self._init_reddit_api():
-            return
-        
-        # Get search keyword
         keyword = self.ui.get_search_keyword()
         if not keyword:
+            self.ui.display_error("No keyword provided.")
             return
-        
-        # Search for memes
-        memes = self.reddit_api.search_memes_by_keyword(keyword=keyword)
-        
-        # Convert to standard format for UI
-        # (title, url, score, post_id)
-        standard_memes = [(m[0], m[1], m[2], m[4]) for m in memes]
-        
-        self._handle_meme_selection(standard_memes)
-    
+            
+        try:
+            memes = self.reddit_api.search_memes(keyword, limit=10)
+            if not memes:
+                self.ui.display_error(f"No memes found for keyword '{keyword}'.")
+                return
+                
+            title, image_url = self.ui.select_meme(memes)
+            if not title or not image_url:
+                return
+                
+            self._handle_meme_selection(title, image_url)
+        except Exception as e:
+            self.ui.display_error(f"Error searching for memes: {str(e)}")
+
     def generate_custom_meme(self):
         """Generate a custom meme from scratch."""
         self.ui.display_info(
@@ -212,19 +222,14 @@ class MemeGeneratorApp:
             except Exception as e:
                 self.ui.display_error(f"Could not open the image: {e}")
     
-    def _handle_meme_selection(self, memes: List[Tuple[str, str, int, str]]):
+    def _handle_meme_selection(self, title: str, image_url: str):
         """
         Handle meme selection and generation.
         
         Args:
-            memes: List of (title, image_url, score, identifier) tuples
+            title: Title of the meme
+            image_url: URL of the meme image
         """
-        selected_meme = self.ui.select_meme(memes)
-        if not selected_meme:
-            return
-        
-        title, image_url = selected_meme
-        
         # Get meme text
         top_text, bottom_text = self.ui.get_meme_text()
         
@@ -238,6 +243,207 @@ class MemeGeneratorApp:
         # Display result
         self.ui.display_generated_meme(output_path)
     
+    def handle_guitar_band_memes(self):
+        """Handle guitar-related meme generation with band customization."""
+        # Check if Reddit API and AI are properly configured
+        if not self.config_manager.is_reddit_configured():
+            self.ui.display_info("Reddit API credentials are required to fetch guitar memes.")
+            self._update_reddit_credentials()
+            
+        # Create guitar meme submenu
+        running = True
+        while running:
+            option = self.ui.display_guitar_menu()
+            
+            if option == "Browse guitar subreddits":
+                self._browse_guitar_subreddits()
+                
+            elif option == "Search for guitar memes":
+                self._search_guitar_memes()
+                
+            elif option == "Generate band-themed meme":
+                self._generate_band_meme()
+                
+            elif option == "Back to main menu":
+                running = False
+    
+    def _browse_guitar_subreddits(self):
+        """Browse memes from guitar-related subreddits."""
+        guitar_subreddits = self.config_manager.get_guitar_subreddits()
+        subreddit = self.ui.select_subreddit(guitar_subreddits)
+        
+        category = self.ui.select_category(self.config_manager.get_default_categories())
+        
+        try:
+            memes = self.reddit_api.get_memes_from_subreddit(subreddit, category, limit=10)
+            if not memes:
+                self.ui.display_error(f"No memes found in r/{subreddit} under {category}.")
+                return
+                
+            title, image_url = self.ui.select_meme(memes)
+            if not title or not image_url:
+                return
+                
+            # Let user choose a band for this meme
+            band_name = self.ui.get_band_name()
+            if not band_name:
+                # If no band name provided, proceed with regular meme generation
+                self._handle_meme_selection(title, image_url)
+            else:
+                # Generate band-themed meme
+                self._handle_band_meme_selection(title, image_url, band_name)
+                
+        except Exception as e:
+            self.ui.display_error(f"Error browsing guitar subreddit: {str(e)}")
+    
+    def _search_guitar_memes(self):
+        """Search for guitar-related memes."""
+        keyword = self.ui.get_search_keyword("Enter guitar-related search term: ")
+        if not keyword:
+            # If no keyword provided, use a default guitar-related term
+            keyword = "guitar"
+            
+        try:
+            memes = self.reddit_api.search_guitar_memes(keyword, limit=10)
+            if not memes:
+                self.ui.display_error(f"No guitar memes found for keyword '{keyword}'.")
+                return
+                
+            title, image_url = self.ui.select_meme(memes)
+            if not title or not image_url:
+                return
+            
+            # Let user choose a band for this meme
+            band_name = self.ui.get_band_name()
+            if not band_name:
+                # If no band name provided, proceed with regular meme generation
+                self._handle_meme_selection(title, image_url)
+            else:
+                # Generate band-themed meme
+                self._handle_band_meme_selection(title, image_url, band_name)
+                
+        except Exception as e:
+            self.ui.display_error(f"Error searching for guitar memes: {str(e)}")
+    
+    def _generate_band_meme(self):
+        """Generate a custom band-themed meme."""
+        band_name = self.ui.get_band_name()
+        if not band_name:
+            self.ui.display_error("No band name provided.")
+            return
+            
+        # Let the user choose to upload an image or search for one
+        choice = input("Upload image (1) or search for guitar image (2)? ")
+        
+        image_url = None
+        title = None
+        
+        if choice == "1":
+            image_url = input("Enter path to local image or URL: ")
+            title = f"Custom {band_name} meme"
+        else:
+            # Search for a guitar image
+            try:
+                memes = self.reddit_api.search_guitar_memes("guitar", limit=10)
+                if not memes:
+                    self.ui.display_error("No guitar images found. Please try again.")
+                    return
+                    
+                title, image_url = self.ui.select_meme(memes)
+                if not title or not image_url:
+                    return
+            except Exception as e:
+                self.ui.display_error(f"Error searching for guitar images: {str(e)}")
+                return
+        
+        # Generate band-themed meme
+        if image_url:
+            self._handle_band_meme_selection(title, image_url, band_name)
+    
+    def _handle_band_meme_selection(self, title: str, image_url: str, band_name: str):
+        """
+        Handle band-themed meme generation.
+        
+        Args:
+            title: Title of the meme
+            image_url: URL of the meme image
+            band_name: Name of the band for the meme
+        """
+        # Check if AI generator is available for custom text generation
+        if self.ai_generator and self.ai_generator.is_api_key_configured():
+            # Use AI to generate band-themed meme text
+            try:
+                self.ui.display_info(f"Generating {band_name}-themed meme text with AI...")
+                top_text, bottom_text = self.ai_generator.generate_band_meme_text(band_name, title)
+                
+                # Generate the actual meme
+                output_path = self.image_editor.generate_meme(
+                    image_path=image_url,
+                    top_text=top_text,
+                    bottom_text=bottom_text
+                )
+                self.ui.display_generated_meme(output_path)
+                
+                # Ask if user wants to regenerate with different text
+                regenerate = input("\nWould you like to regenerate with different text? (y/n): ").lower() == "y"
+                if regenerate:
+                    self._regenerate_band_meme(image_url, band_name)
+                    
+            except Exception as e:
+                self.ui.display_error(f"Error generating band meme: {str(e)}")
+                # Fall back to manual text entry
+                top_text, bottom_text = self.ui.get_meme_text()
+                self._generate_regular_meme(image_url, top_text, bottom_text)
+        else:
+            # AI not available, use manual text entry
+            self.ui.display_info(f"Enter text for your {band_name}-themed meme:")
+            top_text, bottom_text = self.ui.get_meme_text()
+            self._generate_regular_meme(image_url, top_text, bottom_text)
+    
+    def _regenerate_band_meme(self, image_url: str, band_name: str):
+        """
+        Regenerate a band meme with different AI-generated text.
+        
+        Args:
+            image_url: URL of the meme image
+            band_name: Name of the band for the meme
+        """
+        if not self.ai_generator or not self.ai_generator.is_api_key_configured():
+            self.ui.display_error("AI generation not available. Please configure OpenAI API key.")
+            return
+            
+        try:
+            self.ui.display_info(f"Regenerating {band_name}-themed meme text...")
+            top_text, bottom_text = self.ai_generator.generate_band_meme_text(band_name)
+            
+            output_path = self.image_editor.generate_meme(
+                image_path=image_url,
+                top_text=top_text,
+                bottom_text=bottom_text
+            )
+            self.ui.display_generated_meme(output_path)
+        except Exception as e:
+            self.ui.display_error(f"Error regenerating band meme: {str(e)}")
+    
+    def _generate_regular_meme(self, image_url: str, top_text: str, bottom_text: str):
+        """
+        Generate a regular meme without AI involvement.
+        
+        Args:
+            image_url: URL of the meme image
+            top_text: Top text for the meme
+            bottom_text: Bottom text for the meme
+        """
+        try:
+            output_path = self.image_editor.generate_meme(
+                image_path=image_url,
+                top_text=top_text,
+                bottom_text=bottom_text
+            )
+            self.ui.display_generated_meme(output_path)
+        except Exception as e:
+            self.ui.display_error(f"Failed to generate meme: {str(e)}")
+
     def handle_ai_meme_regeneration(self):
         """Handle AI meme regeneration functionality."""
         if not AI_AVAILABLE:
@@ -351,38 +557,83 @@ class MemeGeneratorApp:
     def run(self):
         """Run the main application loop."""
         self.ui.display_welcome()
+        self._initialize_reddit_api()
         
-        # Check if Reddit credentials are configured
-        if not self.config_manager.is_reddit_configured():
+        while True:
+            try:
+                option = self.ui.display_main_menu()
+                
+                if option == "Browse memes from subreddits":
+                    self._browse_subreddits()
+                    
+                elif option == "Search for memes by keyword":
+                    self._search_memes()
+                    
+                elif option == "Generate custom meme":
+                    custom_image_path = input("\nEnter path to local image or URL: ")
+                    if not custom_image_path:
+                        self.ui.display_error("No image path provided.")
+                        continue
+                        
+                    top_text, bottom_text = self.ui.get_meme_text()
+                    try:
+                        output_path = self.image_editor.generate_meme(
+                            image_path=custom_image_path,
+                            top_text=top_text,
+                            bottom_text=bottom_text
+                        )
+                        self.ui.display_generated_meme(output_path)
+                    except Exception as e:
+                        self.ui.display_error(f"Failed to generate meme: {str(e)}")
+                
+                elif option == "View generated memes":
+                    self.ui.browse_generated_memes(self.image_editor.output_dir)
+                
+                elif option == "Guitar/Band memes":
+                    self.handle_guitar_band_memes()
+                    
+                elif option == "Update Reddit API credentials":
+                    self._update_reddit_credentials()
+                    
+                elif option == "AI Meme Settings":
+                    self._handle_ai_settings()
+                    
+                elif option == "Exit":
+                    self.ui.display_info("Thank you for using the Meme Generator! Goodbye.")
+                    break
+                    
+            except KeyboardInterrupt:
+                self.ui.display_info("\nGoodbye!")
+                break
+            except Exception as e:
+                logger.error(f"Unexpected error: {str(e)}")
+                self.ui.display_error(f"An unexpected error occurred: {str(e)}")
+    
+    def _handle_ai_settings(self):
+        """Handle AI meme regeneration settings."""
+        if not self.ai_generator or not self.ai_generator.is_api_key_configured():
             self.ui.display_info(
-                "Welcome to Reddit Meme Generator!\n\n"
-                "It looks like this is your first time running the application.\n"
-                "You'll need to configure your Reddit API credentials to get started."
+                "AI meme generation requires an OpenAI API key.\n"
+                "Please enter your API key to enable this feature."
             )
-            self.update_reddit_credentials()
+            api_key = getpass.getpass("Enter your OpenAI API key: ")
+            if not api_key:
+                self.ui.display_error("No API key provided. AI features remain disabled.")
+                return
+                
+            self.ai_generator.set_api_key(api_key)
+            self.ui.display_info("OpenAI API key configured successfully!")
         
-        # Main menu loop
-        running = True
-        while running:
-            choice = self.ui.display_main_menu()
-            
-            if choice == 1:
-                self.browse_subreddits()
-            elif choice == 2:
-                self.search_memes()
-            elif choice == 3:
-                self.generate_custom_meme()
-            elif choice == 4:
-                self.view_generated_memes()
-            elif choice == 5:
-                self.update_reddit_credentials()
-            elif choice == 6:
-                self.handle_ai_meme_regeneration()
-            elif choice == 7:
-                running = False
-                self.ui.display_info("Thank you for using Reddit Meme Generator!")
+        # Now handle AI menu options
+        ai_menu_option = self.ui.display_ai_menu()
         
-        logger.info("Application exiting")
+        if ai_menu_option == "Regenerate a meme with AI":
+            self._regenerate_meme_with_ai()
+        elif ai_menu_option == "Configure AI settings":
+            # Placeholder for future AI settings
+            self.ui.display_info("AI settings configuration will be available in a future update.")
+        elif ai_menu_option == "Back to main menu":
+            return
 
 def main():
     """Entry point function."""
