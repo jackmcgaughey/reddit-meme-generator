@@ -230,7 +230,7 @@ class MemeGeneratorApp:
         
         # Generate meme
         output_path = self.image_editor.generate_meme(
-            image_url=image_url,
+            image_path=image_url,
             top_text=top_text,
             bottom_text=bottom_text
         )
