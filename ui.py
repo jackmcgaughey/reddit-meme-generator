@@ -305,9 +305,10 @@ class MemeGeneratorUI:
         print("-" * 30)
         print("An OpenAI API key is required for AI-powered meme generation.")
         print("You can get one at: https://platform.openai.com/api-keys")
-        print("This will be stored in your .env file, not in config.json\n")
+        print("This will be stored in your .env file, not in config.json")
+        print("Leave empty to cancel.")
         
-        api_key = input("Enter your OpenAI API key: ").strip()
+        api_key = input("\nEnter your OpenAI API key: ").strip()
         return api_key
     
     def display_ai_menu(self) -> int:
@@ -320,15 +321,16 @@ class MemeGeneratorUI:
         print("\nAI Meme Regeneration")
         print("-" * 30)
         print("1. Regenerate Existing Meme with AI")
-        print("2. Configure AI Settings")
-        print("3. Back to Main Menu")
+        print("2. Update OpenAI API Key")
+        print("3. Configure AI Settings")
+        print("4. Back to Main Menu")
         
         while True:
             try:
-                choice = int(input("\nEnter your choice (1-3): "))
-                if 1 <= choice <= 3:
+                choice = int(input("\nEnter your choice (1-4): "))
+                if 1 <= choice <= 4:
                     return choice
-                print("Invalid choice. Please enter a number between 1 and 3.")
+                print("Invalid choice. Please enter a number between 1 and 4.")
             except ValueError:
                 print("Please enter a valid number.")
     

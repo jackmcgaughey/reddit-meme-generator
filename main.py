@@ -255,7 +255,9 @@ class MemeGeneratorApp:
             
             if choice == 1:  # Regenerate existing meme
                 self._regenerate_meme_with_ai()
-            elif choice == 2:  # Configure AI settings
+            elif choice == 2:  # Update OpenAI API Key
+                self._update_openai_api_key()
+            elif choice == 3:  # Configure AI settings
                 new_settings = self.ui.configure_ai_settings(ai_config)
                 if self.config_manager.update_ai_settings(
                     enabled=new_settings["enabled"],
@@ -267,19 +269,13 @@ class MemeGeneratorApp:
                     # Re-initialize AI generator with new settings
                     if new_settings["enabled"]:
                         if not os.getenv("OPENAI_API_KEY"):
-                            api_key = self.ui.get_openai_api_key()
-                            if api_key:
-                                # Save to .env file
-                                with open(".env", "w") as f:
-                                    f.write(f"OPENAI_API_KEY={api_key}\n")
-                                # Reload environment variables
-                                dotenv.load_dotenv()
+                            self._update_openai_api_key()
                         
                         self._init_ai_generator()
                     
                 else:
                     self.ui.display_error("Failed to update AI settings.")
-            elif choice == 3:  # Back to main menu
+            elif choice == 4:  # Back to main menu
                 break
     
     def _regenerate_meme_with_ai(self):
@@ -290,18 +286,9 @@ class MemeGeneratorApp:
                 "OpenAI API key is required for AI features.\n"
                 "Please provide your API key."
             )
-            api_key = self.ui.get_openai_api_key()
-            if not api_key:
+            self._update_openai_api_key()
+            if not os.getenv("OPENAI_API_KEY"):
                 return
-                
-            # Save to .env file
-            with open(".env", "w") as f:
-                f.write(f"OPENAI_API_KEY={api_key}\n")
-            # Reload environment variables
-            dotenv.load_dotenv()
-            
-            # Initialize AI generator
-            self._init_ai_generator()
         
         # Check if AI generator is available
         if not self.ai_generator:
@@ -328,6 +315,38 @@ class MemeGeneratorApp:
         
         # Display result
         self.ui.display_ai_meme_result(selected_meme, new_meme_path)
+    
+    def _update_openai_api_key(self):
+        """Update the OpenAI API key."""
+        current_key = os.getenv("OPENAI_API_KEY") or "Not set"
+        masked_key = current_key[:4] + "*" * 8 + current_key[-4:] if len(current_key) > 8 else "Not set"
+        
+        self.ui.display_info(f"Current OpenAI API Key: {masked_key}\n\nYou are about to update your OpenAI API key.")
+        
+        api_key = self.ui.get_openai_api_key()
+        if not api_key:
+            return
+            
+        # Check for existing .env file content
+        env_content = ""
+        if os.path.exists(".env"):
+            with open(".env", "r") as f:
+                lines = f.readlines()
+                # Keep any lines that don't set OPENAI_API_KEY
+                env_content = "".join([line for line in lines if not line.startswith("OPENAI_API_KEY=")])
+        
+        # Add the new API key
+        with open(".env", "w") as f:
+            f.write(env_content)
+            f.write(f"OPENAI_API_KEY={api_key}\n")
+        
+        # Reload environment variables
+        dotenv.load_dotenv()
+        
+        # Re-initialize AI generator
+        self._init_ai_generator()
+        
+        self.ui.display_info("OpenAI API key updated successfully!")
     
     def run(self):
         """Run the main application loop."""
