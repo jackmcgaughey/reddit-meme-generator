@@ -98,42 +98,52 @@ class MemeEditor:
             draw = ImageDraw.Draw(img)
             
             # Calculate font size based on image dimensions
-            font_size = int(width / 12)  # Adjust font size to image width
+            base_font_size = int(width / 12)  # Initial font size based on image width
             
             # Load font
             try:
                 if self.font_path:
-                    font = ImageFont.truetype(self.font_path, font_size)
+                    font = ImageFont.truetype(self.font_path, base_font_size)
                 else:
                     # Use default font
                     font = ImageFont.load_default()
                     # Scale default font to be more visible
-                    font_size = int(width / 20)
+                    base_font_size = int(width / 20)
             except Exception as e:
                 logger.error(f"Error loading font, falling back to default: {e}")
                 font = ImageFont.load_default()
-                font_size = int(width / 20)
+                base_font_size = int(width / 20)
             
-            # Add top text
+            # Add top text with margin check
             if top_text:
+                # Calculate safe margins
+                margin_y = height * 0.05  # 5% margin from top
                 self._add_text_with_outline(
-                    draw, 
+                    draw,
+                    img.size, 
                     top_text, 
-                    (width/2, height*0.1),  # Position at top
-                    font, 
+                    (width/2, margin_y + base_font_size),  # Position at top with margin
+                    font,
+                    base_font_size, 
                     text_color, 
-                    outline_color
+                    outline_color,
+                    position_type="top"  # Indicate this is top text
                 )
                 
-            # Add bottom text
+            # Add bottom text with margin check
             if bottom_text:
+                # Calculate safe margins
+                margin_y = height * 0.05  # 5% margin from bottom
                 self._add_text_with_outline(
-                    draw, 
+                    draw,
+                    img.size, 
                     bottom_text, 
-                    (width/2, height*0.9),  # Position at bottom
-                    font, 
+                    (width/2, height - margin_y - base_font_size),  # Position at bottom with margin
+                    font,
+                    base_font_size, 
                     text_color, 
-                    outline_color
+                    outline_color,
+                    position_type="bottom"  # Indicate this is bottom text
                 )
             
             # Generate output filename if not provided
@@ -160,54 +170,142 @@ class MemeEditor:
     
     def _add_text_with_outline(
         self, 
-        draw: ImageDraw.Draw, 
+        draw: ImageDraw.Draw,
+        image_size: Tuple[int, int], 
         text: str, 
         position: Tuple[float, float], 
         font: ImageFont.FreeTypeFont,
+        base_font_size: int,
         text_color: Tuple[int, int, int],
         outline_color: Tuple[int, int, int],
-        outline_width: int = 2
+        outline_width: int = 2,
+        position_type: str = "top"  # Either "top" or "bottom"
     ) -> None:
         """
         Add text with an outline to make it readable on any background.
+        Ensures text stays within image boundaries.
         
         Args:
             draw: PIL drawing context
+            image_size: (width, height) of the image
             text: Text to add
             position: (x, y) center position
             font: Font to use
+            base_font_size: Base font size calculated from image width
             text_color: RGB color tuple for text
             outline_color: RGB color tuple for outline
             outline_width: Width of the outline in pixels
+            position_type: Whether this is "top" or "bottom" text
         """
+        width, height = image_size
+        
+        # Minimum margin in pixels (5% of image height)
+        min_margin = height * 0.05
+        
         # Convert text to uppercase for meme style
         text = text.upper()
         
-        # Get text size for centering
-        try:
-            # Calculate text size for PIL's text rendering 
-            # Note: GetTextSize is deprecated in newer PIL versions,
-            # but for backward compatibility we'll use try/except
+        # Function to calculate text size with given font size
+        def get_text_size(font_size, measure_text=text):
             try:
-                text_width, text_height = draw.textsize(text, font=font)
-            except AttributeError:
-                # For newer PIL versions
-                text_width, text_height = font.getmask(text).getbbox()[2:4]
-        except Exception:
-            # Fallback if text size calculation fails
-            text_width, text_height = len(text) * font.size // 2, font.size
+                # Create a temporary font with the specified size
+                if self.font_path:
+                    temp_font = ImageFont.truetype(self.font_path, font_size)
+                else:
+                    # If we can't get a specific size from default font, make a reasonable estimate
+                    temp_font = font
+                    # For newer PIL versions
+                try:
+                    text_width, text_height = draw.textsize(measure_text, font=temp_font)
+                except AttributeError:
+                    # For newer PIL versions
+                    text_bbox = temp_font.getbbox(measure_text)
+                    text_width = text_bbox[2] - text_bbox[0]
+                    text_height = text_bbox[3] - text_bbox[1]
+                
+                return temp_font, text_width, text_height
+            except Exception as e:
+                logger.error(f"Error calculating text size: {e}")
+                # Fallback to estimate text size
+                return font, len(text) * font_size // 2, font_size
         
-        # Calculate position for centered text
-        x, y = position
-        x -= text_width // 2
-        y -= text_height // 2
+        # Start with the base font size
+        current_font_size = base_font_size
+        current_font, text_width, text_height = get_text_size(current_font_size)
         
-        # Draw the outline by offsetting the text slightly in each direction
-        for offset_x in range(-outline_width, outline_width + 1):
-            for offset_y in range(-outline_width, outline_width + 1):
-                if offset_x == 0 and offset_y == 0:
-                    continue  # Skip the center (will be drawn last)
-                draw.text((x + offset_x, y + offset_y), text, font=font, fill=outline_color)
+        # If text is too wide, reduce font size until it fits within 90% of the image width
+        max_width = width * 0.9  # 90% of image width
+        while text_width > max_width and current_font_size > 12:  # Don't go below 12pt
+            current_font_size -= 2
+            current_font, text_width, text_height = get_text_size(current_font_size)
         
-        # Draw the main text
-        draw.text((x, y), text, font=font, fill=text_color) 
+        # If text is still too wide, we'll split it into multiple lines
+        if text_width > max_width:
+            # Split text into words
+            words = text.split()
+            lines = []
+            current_line = []
+            
+            for word in words:
+                test_line = current_line + [word]
+                test_text = " ".join(test_line)
+                # Pass the actual test_text to measure
+                _, test_width, _ = get_text_size(current_font_size, test_text)
+                
+                if test_width <= max_width:
+                    current_line = test_line
+                else:
+                    if current_line:  # Add current line if not empty
+                        lines.append(" ".join(current_line))
+                    current_line = [word]
+            
+            # Add the last line
+            if current_line:
+                lines.append(" ".join(current_line))
+            
+            # Recalculate position for multi-line text
+            x, y = position
+            if position_type == "top":
+                # For top text, start at the original y position and go down
+                y_offset = 0
+            else:
+                # For bottom text, calculate upward from the bottom position
+                y_offset = -text_height * (len(lines) - 1)
+            
+            # Draw each line
+            for line in lines:
+                # Get text size for this specific line
+                _, line_width, line_height = get_text_size(current_font_size, line)
+                
+                # Calculate position
+                x_pos = x - line_width // 2
+                y_pos = y + y_offset - line_height // 2
+                
+                # Draw the outline
+                for offset_x in range(-outline_width, outline_width + 1):
+                    for offset_y in range(-outline_width, outline_width + 1):
+                        if offset_x == 0 and offset_y == 0:
+                            continue
+                        draw.text((x_pos + offset_x, y_pos + offset_y), line, font=current_font, fill=outline_color)
+                
+                # Draw the main text
+                draw.text((x_pos, y_pos), line, font=current_font, fill=text_color)
+                
+                # Update y position for next line
+                y_offset += line_height + 5  # Add 5px spacing between lines
+        else:
+            # Draw single line text
+            # Calculate position for centered text
+            x, y = position
+            x_pos = x - text_width // 2
+            y_pos = y - text_height // 2
+            
+            # Draw the outline
+            for offset_x in range(-outline_width, outline_width + 1):
+                for offset_y in range(-outline_width, outline_width + 1):
+                    if offset_x == 0 and offset_y == 0:
+                        continue
+                    draw.text((x_pos + offset_x, y_pos + offset_y), text, font=current_font, fill=outline_color)
+            
+            # Draw the main text
+            draw.text((x_pos, y_pos), text, font=current_font, fill=text_color) 
