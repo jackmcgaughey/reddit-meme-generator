@@ -10,6 +10,10 @@ A simple yet powerful tool to discover, generate, and customize memes from Reddi
 - **View Generated Memes**: Browse and view your previously created memes
 - **AI-Powered Meme Regeneration**: Use OpenAI to create new clever captions for existing memes
 - **Smart Text Rendering**: Automatically sizes and wraps text to ensure readability
+- **Guitar/Band themed meme generator**:
+  - Browse guitar-specific subreddits
+  - Generate memes with AI-created jokes about specific bands
+  - Search for guitar-related content
 
 ## Requirements
 
