@@ -39,6 +39,9 @@ generated_memes/
 # Environment variables
 .env
 
+# Configuration files with sensitive data
+config.json
+
 # IDE specific files
 .idea/
 .vscode/

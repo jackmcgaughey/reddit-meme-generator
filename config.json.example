@@ -1,7 +1,7 @@
 {
   "reddit": {
-    "client_id": "QM8wOdxRWncF7i89FDEWMw",
-    "client_secret": "tZETivhpngGJxGv4S0B5bArj52K8mA",
+    "client_id": "",
+    "client_secret": "",
     "user_agent": "MemeGenerator/1.0"
   },
   "image_editor": {
@@ -20,5 +20,10 @@
     "new",
     "top",
     "rising"
-  ]
-}
+  ],
+  "ai": {
+    "enabled": true,
+    "temp_dir": "temp_images",
+    "model": "gpt-4o"
+  }
+} 
