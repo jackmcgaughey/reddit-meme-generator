@@ -60,8 +60,8 @@ class MemeGeneratorApp:
         self.ui = MemeGeneratorUI()
         self.config_manager = ConfigManager()
         
-        # Initialize Reddit API
-        self.reddit_api = RedditMemeAPI()
+        # Initialize Reddit API (without credentials for now)
+        self.reddit_api = RedditMemeAPI(client_id="", client_secret="")
         
         # Initialize image editor
         editor_config = self.config_manager.get_image_editor_config()
@@ -132,14 +132,23 @@ class MemeGeneratorApp:
                 "You'll need to configure your Reddit API credentials to get started."
             )
             self._update_reddit_credentials()
+            return
         
         credentials = self.config_manager.get_reddit_credentials()
-        self.reddit_api.configure(
-            client_id=credentials["client_id"],
-            client_secret=credentials["client_secret"],
-            user_agent=credentials.get("user_agent", "MemeGenerator/1.0")
-        )
-        logger.info("Reddit API initialized successfully")
+        try:
+            self.reddit_api.configure(
+                client_id=credentials["client_id"],
+                client_secret=credentials["client_secret"],
+                user_agent=credentials.get("user_agent", "MemeGenerator/1.0")
+            )
+            logger.info("Reddit API initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize Reddit API: {str(e)}")
+            self.ui.display_error(
+                f"Failed to initialize Reddit API: {str(e)}\n"
+                "Please update your credentials."
+            )
+            self._update_reddit_credentials()
 
     def _update_reddit_credentials(self):
         """Update Reddit API credentials in configuration."""

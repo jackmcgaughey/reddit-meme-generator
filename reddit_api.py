@@ -22,12 +22,44 @@ class RedditMemeAPI:
             client_secret: Your Reddit application client secret
             user_agent: User agent for API requests
         """
-        self.reddit = praw.Reddit(
-            client_id=client_id,
-            client_secret=client_secret,
-            user_agent=user_agent
-        )
-        logger.info("Reddit API client initialized")
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.user_agent = user_agent
+        
+        if client_id and client_secret:
+            self.reddit = praw.Reddit(
+                client_id=client_id,
+                client_secret=client_secret,
+                user_agent=user_agent
+            )
+            logger.info("Reddit API client initialized")
+        else:
+            self.reddit = None
+            logger.warning("Reddit API client initialized with empty credentials")
+    
+    def configure(self, client_id: str, client_secret: str, user_agent: str = "MemeGenerator/1.0"):
+        """
+        Configure or reconfigure the Reddit API client with new credentials.
+        
+        Args:
+            client_id: Your Reddit application client ID
+            client_secret: Your Reddit application client secret
+            user_agent: User agent for API requests
+        """
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.user_agent = user_agent
+        
+        if client_id and client_secret:
+            self.reddit = praw.Reddit(
+                client_id=client_id,
+                client_secret=client_secret,
+                user_agent=user_agent
+            )
+            logger.info("Reddit API client reconfigured")
+        else:
+            self.reddit = None
+            logger.warning("Reddit API client configured with empty credentials")
     
     def fetch_memes_from_subreddit(
         self, 
@@ -391,4 +423,16 @@ class RedditMemeAPI:
             response = requests.head(url, timeout=3)
             return response.status_code == 200
         except requests.RequestException:
-            return False 
+            return False
+    
+    def _check_credentials(self) -> bool:
+        """
+        Verify that Reddit API credentials are available.
+        
+        Returns:
+            bool: True if credentials are valid
+        """
+        if self.reddit:
+            return True
+            
+        raise ValueError("Reddit API credentials not configured. Please configure them before using this method.") 
