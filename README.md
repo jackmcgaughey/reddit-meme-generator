@@ -1,6 +1,6 @@
 # Reddit Meme Generator
 
-A simple yet powerful tool to discover, generate, and customize memes from Reddit.
+A simple yet powerful tool to discover, generate, and customize memes from Reddit, now with AI-powered meme regeneration!
 
 ## Features
 
@@ -8,6 +8,8 @@ A simple yet powerful tool to discover, generate, and customize memes from Reddi
 - **Search for Memes by Keyword**: Discover memes matching specific topics or themes
 - **Generate Custom Memes**: Add your own text to any meme template
 - **View Generated Memes**: Browse and view your previously created memes
+- **AI-Powered Meme Regeneration**: Use OpenAI to create new clever captions for existing memes
+- **Smart Text Rendering**: Automatically sizes and wraps text to ensure readability
 
 ## Requirements
 
@@ -16,6 +18,8 @@ A simple yet powerful tool to discover, generate, and customize memes from Reddi
   - praw (Reddit API wrapper)
   - Pillow (Image processing)
   - requests
+  - python-dotenv (Environment variable management)
+  - openai (Optional, for AI features)
 
 ## Installation
 
@@ -29,7 +33,9 @@ A simple yet powerful tool to discover, generate, and customize memes from Reddi
    python main.py
    ```
 
-## Reddit API Setup
+## API Setup
+
+### Reddit API Setup (Required)
 
 The application requires Reddit API credentials to function:
 
@@ -46,6 +52,20 @@ The application requires Reddit API credentials to function:
 
 The application will prompt you to enter these credentials on first launch.
 
+### OpenAI API Setup (Optional, for AI features)
+
+To use the AI meme regeneration feature:
+
+1. Create an account at [OpenAI](https://platform.openai.com)
+2. Generate an API key from your account dashboard
+3. In the application, select "AI Meme Regeneration" from the main menu and choose "Update OpenAI API Key"
+4. Enter your API key when prompted
+
+Alternatively, create a `.env` file in the project root with your key:
+```
+OPENAI_API_KEY=your_api_key_here
+```
+
 ## Usage
 
 1. **Start the Application**: Run `python main.py`
@@ -55,6 +75,14 @@ The application will prompt you to enter these credentials on first launch.
    - Or search for specific memes by keyword
 4. **Customize**: Add your own text at the top and bottom of selected memes
 5. **Save and Share**: Generated memes are saved to the `generated_memes` directory
+6. **AI Regeneration**: Select "AI Meme Regeneration" to create new captions for existing memes
+
+### Text Rendering Features
+
+- **Smart Text Sizing**: Text automatically scales to fit the image width
+- **Line Wrapping**: Long text automatically wraps to multiple lines
+- **Margin Control**: Text properly positioned to stay within image boundaries
+- **Readable Captions**: Text includes outlines to ensure visibility against any background
 
 ## Project Structure
 
@@ -63,6 +91,8 @@ The application will prompt you to enter these credentials on first launch.
 - `image_editor.py` - Image processing and text addition
 - `config_manager.py` - Handles application configuration
 - `ui.py` - Command-line user interface
+- `ai_meme_generator.py` - AI-powered meme caption generation
+- `.env.example` - Template for environment variables
 
 ## License
 
@@ -77,4 +107,6 @@ This tool is for educational and personal use. Please respect copyright and Redd
 - Add advanced text customization options (colors, fonts, positioning)
 - Support for meme templates from more sources
 - Export to social media platforms
-- Add GUI interface 
+- Add GUI interface
+- Support for more AI models and image generation features
+- Sentiment analysis for meme categorization 
