@@ -20,6 +20,11 @@ A simple yet powerful tool to discover, generate, and customize memes from Reddi
   - Supported genres include 60s rock, jazz, 90s rock, rave, and 2010s pop
   - Each genre has a unique AI personality and style
   - Search for genre-related images automatically
+- **Enhanced Media Support**:
+  - Support for multiple image formats (JPG, JPEG, PNG, GIF, BMP, WebP, TIFF, SVG)
+  - Automatic format conversion for compatibility
+  - Video content detection with clear user notification
+  - Graceful handling of unsupported media formats
 
 ## Requirements
 
@@ -152,7 +157,8 @@ This tool is for educational and personal use. Please respect copyright and Redd
 - Add more music genres and cultural themes to the genre-specific generator
 - Implement a meme battle feature where two genres or bands compete
 - Create a collaborative mode where multiple users can contribute to a meme
-- Add video meme support with animated captions
+- Expand video meme support for popular video formats and hosting platforms
+- Add custom video thumbnail extraction for creating static memes from videos
 - Integrate with other APIs for more diverse content sources
 - Build a recommendation system based on user preferences
 - Add accessibility features for screen readers and alternative input methods 
