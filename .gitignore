@@ -1,4 +1,4 @@
-# Byte-compiled / optimized / DLL files
+# Python cache files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -30,11 +30,13 @@ env/
 ENV/
 .venv/
 
-# Generated memes
-generated_memes/
+# Generated memes - keep the directory but ignore contents
+generated_memes/*
+!generated_memes/.gitkeep
 
-# Temporary files
-temp_images/
+# Temporary files - keep the directory but ignore contents
+temp_images/*
+!temp_images/.gitkeep
 
 # Logs
 *.log
@@ -53,4 +55,9 @@ config.json
 
 # OS specific files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db 
