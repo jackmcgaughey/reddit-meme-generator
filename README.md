@@ -14,6 +14,12 @@ A simple yet powerful tool to discover, generate, and customize memes from Reddi
   - Browse guitar-specific subreddits
   - Generate memes with AI-created jokes about specific bands
   - Search for guitar-related content
+  - Generate genre-specific memes with unique personality for each music genre
+- **Music Genre Meme Generator**:
+  - Create memes with genre-specific humor and cultural references
+  - Supported genres include 60s rock, jazz, 90s rock, rave, and 2010s pop
+  - Each genre has a unique AI personality and style
+  - Search for genre-related images automatically
 
 ## Requirements
 
@@ -91,6 +97,23 @@ To use the AI meme regeneration feature:
 4. **Customize**: Add your own text at the top and bottom of selected memes
 5. **Save and Share**: Generated memes are saved to the `generated_memes` directory
 6. **AI Regeneration**: Select "AI Meme Regeneration" to create new captions for existing memes
+7. **Guitar & Band Memes**: Select "Guitar/Band memes" from the main menu to:
+   - Browse guitar-related subreddits
+   - Search for guitar memes
+   - Generate band-themed memes with custom AI humor
+   - Create genre-specific memes with distinct styles
+
+### Genre-Specific Meme Generation
+
+The application offers specialized meme generation for different music genres:
+
+- **60s Rock**: Nostalgic Baby Boomer style with references to Woodstock, The Beatles, Rolling Stones, etc.
+- **Jazz**: Pretentious jazz aficionado personality with bebop references and intellectual humor
+- **90s Rock**: Cynical Gen-X slacker tone with grunge references and ironic humor
+- **Rave**: Manic enthusiasm with PLUR references and electronic music culture jokes
+- **2010s Pop**: Social media-obsessed personality with references to streaming, stan culture, and current trends
+
+Each genre has its own AI personality that crafts humor specifically tailored to the culture and stereotypes of that music scene.
 
 ### Text Rendering Features
 
@@ -125,4 +148,11 @@ This tool is for educational and personal use. Please respect copyright and Redd
 - Export to social media platforms
 - Add GUI interface
 - Support for more AI models and image generation features
-- Sentiment analysis for meme categorization 
+- Sentiment analysis for meme categorization
+- Add more music genres and cultural themes to the genre-specific generator
+- Implement a meme battle feature where two genres or bands compete
+- Create a collaborative mode where multiple users can contribute to a meme
+- Add video meme support with animated captions
+- Integrate with other APIs for more diverse content sources
+- Build a recommendation system based on user preferences
+- Add accessibility features for screen readers and alternative input methods 
