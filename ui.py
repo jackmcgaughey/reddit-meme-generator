@@ -569,6 +569,7 @@ class MemeGeneratorUI:
             "Browse guitar subreddits",
             "Search for guitar memes",
             "Generate band-themed meme",
+            "Generate genre-themed meme",
             "Back to main menu"
         ]
         
@@ -581,12 +582,12 @@ class MemeGeneratorUI:
             
         while True:
             try:
-                choice = input("\nEnter your choice (1-4): ")
+                choice = input("\nEnter your choice (1-5): ")
                 index = int(choice) - 1
                 if 0 <= index < len(options):
                     return options[index]
                 else:
-                    print("Invalid choice. Please enter a number between 1 and 4.")
+                    print("Invalid choice. Please enter a number between 1 and 5.")
             except ValueError:
                 print("Please enter a valid number.")
     
@@ -606,6 +607,94 @@ class MemeGeneratorUI:
         print("(Leave empty to go back)")
         
         return input("\nBand name: ").strip()
+    
+    def select_music_genre(self) -> str:
+        """
+        Display a list of music genres for meme generation and let the user select one.
+        
+        Returns:
+            str: The selected genre or an empty string to go back
+        """
+        genres = [
+            "60s rock",
+            "jazz",
+            "90s rock",
+            "rave",
+            "2010s pop"
+        ]
+        
+        genre_descriptions = {
+            "60s rock": "Psychedelic, peace and love, Woodstock, Beatles, Stones, Hendrix",
+            "jazz": "Bebop, cool cats, intellectual, improvisation, Miles Davis, Coltrane",
+            "90s rock": "Grunge, flannel shirts, angst, Nirvana, Pearl Jam, MTV",
+            "rave": "PLUR, glow sticks, electronic beats, warehouses, DJ culture",
+            "2010s pop": "Social media, stan culture, Taylor Swift, streaming, TikTok"
+        }
+        
+        print("\n" + "-" * 60)
+        print("GENRE SELECTION FOR MEME GENERATION".center(60))
+        print("-" * 60)
+        print("Select a music genre for your meme.\n")
+        print("Each genre has its own cultural references and inside jokes.")
+        
+        for i, genre in enumerate(genres, 1):
+            print(f"{i}. {genre.title()}")
+            print(f"   {genre_descriptions.get(genre, '')}")
+            print()
+        
+        print("0. Back")
+        
+        while True:
+            try:
+                choice = input("\nSelect a genre (0-5): ")
+                if not choice.strip() or choice == "0":
+                    return ""
+                    
+                choice_index = int(choice) - 1
+                if 0 <= choice_index < len(genres):
+                    return genres[choice_index]
+                else:
+                    print(f"Invalid choice. Please enter a number between 0 and {len(genres)}.")
+            except ValueError:
+                print("Please enter a valid number.")
+    
+    def display_genre_meme_result(self, genre: str, image_path: str, new_path: Optional[str]):
+        """
+        Display information about a genre-themed meme.
+        
+        Args:
+            genre: The music genre
+            image_path: Path to the original image
+            new_path: Path to the new meme or None if generation failed
+        """
+        if new_path and os.path.exists(new_path):
+            print(f"\n{genre.title()} Meme Generated Successfully!")
+            print("-" * 40)
+            print(f"Original image: {image_path}")
+            print(f"Meme saved to: {new_path}")
+            
+            # Try to open the meme with the default image viewer
+            try:
+                if os.name == 'nt':  # Windows
+                    os.startfile(new_path)
+                elif os.name == 'posix':  # macOS and Linux
+                    import subprocess
+                    if os.uname().sysname == 'Darwin':  # macOS
+                        subprocess.run(['open', new_path], check=True)
+                    else:  # Linux
+                        subprocess.run(['xdg-open', new_path], check=True)
+                
+                print("The genre meme has been opened in your default image viewer.")
+            except Exception as e:
+                print(f"Could not open the image automatically: {e}")
+                print("Please open it manually from the path above.")
+        else:
+            print("\nGenre Meme Generation Failed")
+            print("-" * 40)
+            print(f"There was an error generating your {genre} meme.")
+            print("Please check if your OpenAI API key is valid and try again.")
+        
+        input("\nPress Enter to continue...")
     
     def get_search_keyword(self, prompt="Enter search keyword: ") -> str:
         """

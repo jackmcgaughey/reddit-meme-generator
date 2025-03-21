@@ -330,6 +330,9 @@ class MemeGeneratorApp:
             elif option == "Generate band-themed meme":
                 self._generate_band_meme()
                 
+            elif option == "Generate genre-themed meme":
+                self._generate_genre_meme()
+                
             elif option == "Back to main menu":
                 running = False
     
@@ -468,6 +471,136 @@ class MemeGeneratorApp:
             self.ui.display_generated_meme(output_path)
         except Exception as e:
             self.ui.display_error(f"Error regenerating band meme: {str(e)}")
+    
+    def _generate_genre_meme(self):
+        """Generate a custom genre-themed meme."""
+        genre = self.ui.select_music_genre()
+        if not genre:
+            return
+            
+        # Let the user choose to upload an image or search for one
+        choice = input("Upload image (1) or search for genre-related image (2)? ")
+        
+        image_url = None
+        title = None
+        
+        if choice == "1":
+            image_url = input("Enter path to local image or URL: ")
+            title = f"Custom {genre} meme"
+        else:
+            # Search for a genre-related image
+            try:
+                self.ui.display_info(f"Searching for images related to '{genre}' music...")
+                memes = self.reddit_api.search_genre_images(genre, limit=10)
+                if not memes:
+                    self.ui.display_info(f"No images found specifically for '{genre}', falling back to general music images...")
+                    memes = self.reddit_api.search_memes("music", limit=10)
+                    if not memes:
+                        self.ui.display_error("No images found. Please try again.")
+                        return
+                    
+                title, image_url = self.ui.select_meme(memes)
+                if not title or not image_url:
+                    return
+            except Exception as e:
+                logger.error(f"Error searching for genre images: {str(e)}")
+                self.ui.display_error(f"Error searching for images: {str(e)}")
+                return
+        
+        # Generate genre-themed meme
+        if image_url:
+            self._handle_genre_meme_selection(title, image_url, genre)
+    
+    def _handle_genre_meme_selection(self, title: str, image_url: str, genre: str):
+        """
+        Handle genre-themed meme generation.
+        
+        Args:
+            title: Title of the meme
+            image_url: URL of the meme image
+            genre: Music genre for the meme
+        """
+        # Check if AI generator is available for custom text generation
+        if self.ai_generator and self.ai_generator.is_api_key_configured():
+            try:
+                self.ui.display_info(f"Generating {genre}-themed meme text with AI...")
+                
+                # Download the image first if it's a URL
+                local_image_path = None
+                try:
+                    if image_url.startswith(('http://', 'https://')):
+                        import requests
+                        import uuid
+                        import os
+                        
+                        response = requests.get(image_url, timeout=10)
+                        response.raise_for_status()
+                        
+                        temp_dir = "temp_images"
+                        if not os.path.exists(temp_dir):
+                            os.makedirs(temp_dir)
+                            
+                        local_image_path = os.path.join(temp_dir, f"genre_meme_source_{uuid.uuid4().hex[:8]}.jpg")
+                        with open(local_image_path, 'wb') as f:
+                            f.write(response.content)
+                except Exception as e:
+                    logger.error(f"Error downloading image: {str(e)}")
+                    local_image_path = None
+                
+                # Generate meme text with or without image analysis
+                if local_image_path:
+                    top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre, local_image_path, title)
+                else:
+                    top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre, context=title)
+                
+                # Generate the actual meme
+                output_path = self.image_editor.generate_meme(
+                    image_path=image_url,
+                    top_text=top_text,
+                    bottom_text=bottom_text
+                )
+                self.ui.display_genre_meme_result(genre, image_url, output_path)
+                
+                # Ask if user wants to regenerate with different text
+                regenerate = input("\nWould you like to regenerate with different text? (y/n): ").lower() == "y"
+                if regenerate:
+                    self._regenerate_genre_meme(image_url, genre)
+                    
+            except Exception as e:
+                self.ui.display_error(f"Error generating genre meme: {str(e)}")
+                # Fall back to manual text entry
+                top_text, bottom_text = self.ui.get_meme_text()
+                self._generate_regular_meme(image_url, top_text, bottom_text)
+        else:
+            # AI not available, use manual text entry
+            self.ui.display_info(f"Enter text for your {genre}-themed meme:")
+            top_text, bottom_text = self.ui.get_meme_text()
+            self._generate_regular_meme(image_url, top_text, bottom_text)
+    
+    def _regenerate_genre_meme(self, image_url: str, genre: str):
+        """
+        Regenerate a genre meme with different AI-generated text.
+        
+        Args:
+            image_url: URL of the meme image
+            genre: Music genre for the meme
+        """
+        if not self.ai_generator or not self.ai_generator.is_api_key_configured():
+            self.ui.display_error("AI generation not available. Please configure OpenAI API key.")
+            return
+            
+        try:
+            self.ui.display_info(f"Regenerating {genre}-themed meme text...")
+            top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre)
+            
+            output_path = self.image_editor.generate_meme(
+                image_path=image_url,
+                top_text=top_text,
+                bottom_text=bottom_text
+            )
+            self.ui.display_genre_meme_result(genre, image_url, output_path)
+        except Exception as e:
+            self.ui.display_error(f"Error regenerating genre meme: {str(e)}")
     
     def _generate_regular_meme(self, image_url: str, top_text: str, bottom_text: str):
         """

@@ -678,4 +678,212 @@ class RedditMemeAPI:
             try:
                 return self.search_guitar_memes(limit=limit)
             except:
+                return []
+    
+    def search_genre_images(self, genre: str, limit: int = 10) -> List[Tuple[str, str, int, str, str]]:
+        """
+        Search for images related to a specific music genre across Reddit.
+        
+        Args:
+            genre: Music genre to search for (e.g., "60s rock", "jazz", "90s rock", "rave", "2010s pop")
+            limit: Maximum number of results to return
+            
+        Returns:
+            List of tuples (title, image_url, score, subreddit, post_id)
+        """
+        if not self.reddit:
+            self._check_credentials()
+            
+        results = []
+        
+        # Define genre-specific search parameters
+        genre_search_config = {
+            "60s rock": {
+                "subreddits": ["ClassicRock", "OldSchoolCool", "60sMusic", "classic_rock", "psychedelicrock", "rock"],
+                "search_terms": ["60s", "classic rock", "woodstock", "vintage", "psychedelic"],
+                "bands": ["Beatles", "Rolling Stones", "Jimi Hendrix", "Grateful Dead", "The Doors"]
+            },
+            "jazz": {
+                "subreddits": ["Jazz", "JazzPiano", "JazzGuitar", "LearnJazz", "classicjazz", "JazzPhotos", "jazzmen"],
+                "search_terms": ["jazz", "bebop", "saxophone", "trumpet", "improvisation", "club"],
+                "artists": ["Miles Davis", "John Coltrane", "Thelonious Monk", "Charlie Parker", "Duke Ellington"]
+            },
+            "90s rock": {
+                "subreddits": ["grunge", "90sMusic", "90sAlternative", "90sRock", "Nirvana", "PearlJam", "Soundgarden"],
+                "search_terms": ["grunge", "alternative", "flannel", "90s rock", "MTV", "generation x"],
+                "bands": ["Nirvana", "Pearl Jam", "Soundgarden", "Alice in Chains", "Red Hot Chili Peppers"]
+            },
+            "rave": {
+                "subreddits": ["aves", "EDM", "electronicmusic", "DJs", "ravelight", "festivals", "ravecouture"],
+                "search_terms": ["rave", "plur", "electronic", "festival", "lights", "edm", "dance"],
+                "concepts": ["glowsticks", "kandi", "dj", "lightshow", "warehouse party"]
+            },
+            "2010s pop": {
+                "subreddits": ["popheads", "TaylorSwift", "ariheads", "lanadelrey", "JustinBieber", "kpop"],
+                "search_terms": ["pop", "streaming", "chart topper", "stan", "instagram aesthetic"],
+                "artists": ["Taylor Swift", "Ariana Grande", "Justin Bieber", "Billie Eilish", "BTS"]
+            }
+        }
+        
+        # Get the search config for the selected genre (default to general music if not found)
+        search_config = genre_search_config.get(genre.lower(), {
+            "subreddits": ["Music", "pics", "listentothis", "ImagesOfThe2010s"],
+            "search_terms": [genre, "music", "concert", "festival", "band"],
+            "names": []
+        })
+        
+        # Create a list of subreddits to search in
+        genre_subreddits = search_config["subreddits"] + ["Music", "pics", "OldSchoolCool", "ImagesOfThe20thCentury"]
+        
+        try:
+            # First strategy: search in genre-specific subreddits
+            subreddit_string = "+".join(genre_subreddits)
+            
+            for term in search_config["search_terms"]:
+                if len(results) >= limit:
+                    break
+                    
+                search_results = self.reddit.subreddit(subreddit_string).search(
+                    f"{term} {genre} site:i.redd.it OR site:imgur.com", 
+                    sort="relevance", 
+                    time_filter="all",
+                    limit=limit * 2
+                )
+                
+                for post in search_results:
+                    if not hasattr(post, 'url'):
+                        continue
+                        
+                    # Check if it's an image URL
+                    url = post.url
+                    if not self._is_image_url(url):
+                        continue
+                        
+                    # Check for duplicates
+                    if any(result[4] == post.id for result in results):
+                        continue
+                        
+                    results.append((
+                        post.title,
+                        url,
+                        post.score,
+                        str(post.subreddit),
+                        post.id
+                    ))
+                    
+                    if len(results) >= limit:
+                        break
+            
+            # Second strategy: search for associated artists/bands
+            if len(results) < limit and "bands" in search_config:
+                for band in search_config.get("bands", []):
+                    if len(results) >= limit:
+                        break
+                        
+                    band_results = self.search_band_images(band, limit=(limit - len(results)))
+                    
+                    # Filter out duplicates
+                    for result in band_results:
+                        if any(r[4] == result[4] for r in results):
+                            continue
+                            
+                        results.append(result)
+                        
+                        if len(results) >= limit:
+                            break
+            
+            # Same for artists if present
+            if len(results) < limit and "artists" in search_config:
+                for artist in search_config.get("artists", []):
+                    if len(results) >= limit:
+                        break
+                        
+                    artist_results = self.search_band_images(artist, limit=(limit - len(results)))
+                    
+                    # Filter out duplicates
+                    for result in artist_results:
+                        if any(r[4] == result[4] for r in results):
+                            continue
+                            
+                        results.append(result)
+                        
+                        if len(results) >= limit:
+                            break
+            
+            # Third strategy: broader search across all of Reddit
+            if len(results) < limit:
+                search_results = self.reddit.subreddit("all").search(
+                    f"{genre} music site:i.redd.it OR site:imgur.com", 
+                    sort="relevance", 
+                    time_filter="all",
+                    limit=(limit - len(results)) * 3
+                )
+                
+                for post in search_results:
+                    if not hasattr(post, 'url'):
+                        continue
+                        
+                    # Check if it's an image URL
+                    url = post.url
+                    if not self._is_image_url(url):
+                        continue
+                        
+                    # Check for duplicates
+                    if any(result[4] == post.id for result in results):
+                        continue
+                        
+                    results.append((
+                        post.title,
+                        url,
+                        post.score,
+                        str(post.subreddit),
+                        post.id
+                    ))
+                    
+                    if len(results) >= limit:
+                        break
+            
+            # If we still don't have enough images, fall back to general music images
+            if len(results) < limit:
+                logger.info(f"Found only {len(results)} images for genre '{genre}', searching for more general music images.")
+                search_results = self.reddit.subreddit("all").search(
+                    "music meme site:i.redd.it OR site:imgur.com",
+                    sort="relevance", 
+                    time_filter="all",
+                    limit=(limit - len(results)) * 2
+                )
+                
+                for post in search_results:
+                    if not hasattr(post, 'url'):
+                        continue
+                        
+                    # Check if it's an image URL
+                    url = post.url
+                    if not self._is_image_url(url):
+                        continue
+                        
+                    # Check for duplicates
+                    if any(result[4] == post.id for result in results):
+                        continue
+                        
+                    results.append((
+                        post.title,
+                        url,
+                        post.score,
+                        str(post.subreddit),
+                        post.id
+                    ))
+                    
+                    if len(results) >= limit:
+                        break
+            
+            logger.info(f"Found {len(results)} images for genre '{genre}'")
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error searching for genre images: {str(e)}")
+            # Fall back to general music/meme images if we encounter an error
+            try:
+                return self.search_memes("music", limit=limit)
+            except:
                 return [] 
