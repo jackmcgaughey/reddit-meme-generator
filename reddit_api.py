@@ -749,13 +749,16 @@ class RedditMemeAPI:
         meme_subreddits = [
             "memes", "dankmemes", "meme", "adviceanimals", "comedycemetery", 
             "funny", "prequelmemes", "historymemes", "memeconomy", "politicalcompassmemes",
-            "wholesomememes", "okbuddyretard", "comedyheaven", "terriblefacebookmemes"
+            "wholesomememes", "okbuddyretard", "comedyheaven", "terriblefacebookmemes",
+            "guitarmemes", "metalmemes", "musicmemes", "classicalmemes", "hiphopmemes"
         ]
         
         # List of keywords that often appear in meme titles
         meme_keywords = [
             "meme", "caption", "when you", "me when", "my face when", "tfw", "mfw", 
-            "expectation vs reality", "see the joke", "lol", "lmao", "be like"
+            "expectation vs reality", "see the joke", "lol", "lmao", "be like",
+            "when the", "how it feels", "caption this", "text", "quote", "lyric",
+            "words", "subtitle", "hilarious", "funny", "laugh", "humor", "punchline"
         ]
         
         # Check if the subreddit is a known meme subreddit
@@ -764,6 +767,21 @@ class RedditMemeAPI:
             
         # Check if the title contains meme keywords
         if any(keyword.lower() in title.lower() for keyword in meme_keywords):
+            return True
+            
+        # Additional filtering for text-containing images
+        text_indicators = ["text", "caption", "quote", "lyric", "says", "wrote", "writing", 
+                          "typed", "tweet", "post", "comment", "message", "headline"]
+        
+        if any(indicator in title.lower() for indicator in text_indicators):
+            return True
+            
+        # Check for uppercase titles (often indicates meme/caption style)
+        if title.isupper() and len(title) > 10:
+            return True
+            
+        # Check if there are quotation marks in the title (likely contains a quote)
+        if '"' in title or "'" in title:
             return True
             
         return False

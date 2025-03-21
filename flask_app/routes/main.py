@@ -164,13 +164,13 @@ def generate_band_meme():
 @bp.route('/genre-memes')
 def genre_memes():
     """Render the genre memes page."""
-    # Music genres with more specific names to ensure music-related results
+    # Music genres without "Music" suffix but still specific to music
     music_genres = [
-        "Rock Music", "Heavy Metal", "Pop Music", "Hip Hop Music", "Jazz Music", 
-        "Blues Music", "Country Music", "Electronic Music", "Classical Music", 
-        "Reggae Music", "Punk Rock", "R&B Music", "Soul Music", "Folk Music", 
-        "Indie Rock", "Techno Music", "Disco Music", "Alternative Rock", 
-        "Funk Music", "Grunge Music"
+        "Rock", "Heavy Metal", "Pop", "Hip Hop", "Jazz", 
+        "Blues", "Country", "Electronic", "Classical", 
+        "Reggae", "Punk Rock", "R&B", "Soul", "Folk", 
+        "Indie Rock", "Techno", "Disco", "Alternative Rock", 
+        "Funk", "Grunge"
     ]
     return render_template('genre_memes.html', genres=music_genres)
 
@@ -184,15 +184,15 @@ def search_genre_images():
             return redirect(url_for('main.genre_memes'))
         
         try:
-            # Ensure genre includes "music" if it doesn't already
-            search_genre = genre if "music" in genre.lower() else f"{genre} Music"
+            # Internally add "music" context for search without changing display name
+            search_genre = f"{genre} Music"
             
             # Search for genre images - get 30 to have enough after filtering
             images = reddit_api.search_genre_images(search_genre, limit=30)
             if not images or len(images) < 5:
                 # Try a different search strategy if no results
                 logger.info(f"First search returned insufficient results for '{search_genre}', trying secondary search")
-                secondary_images = reddit_api.search_memes(f"{search_genre} band concert", limit=30)
+                secondary_images = reddit_api.search_memes(f"{genre} band concert", limit=30)
                 if secondary_images:
                     images.extend(secondary_images)
                 
@@ -211,7 +211,7 @@ def search_genre_images():
             # Store image URLs in session
             image_list = [{'url': img[1], 'title': img[0]} for img in images]
             
-            logger.info(f"Found {len(image_list)} images for genre '{search_genre}'")
+            logger.info(f"Found {len(image_list)} images for genre '{genre}'")
             return render_template('genre_image_results.html', images=image_list, genre=genre)
         
         except Exception as e:

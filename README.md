@@ -20,7 +20,7 @@ A simple yet powerful tool to discover, generate, and customize memes from Reddi
   - Supported genres include Rock, Metal, Jazz, Hip Hop, and many more
   - Each genre has a unique AI personality and style
   - Enhanced music-focused image search for relevant results
-  - Smart filtering and fallback options to ensure quality music-related images
+  - Smart filtering to ensure images don't already contain text
 - **Enhanced Media Support**:
   - Support for multiple image formats (JPG, JPEG, PNG, GIF, BMP, WebP, TIFF, SVG)
   - Automatic format conversion for compatibility
@@ -134,15 +134,16 @@ The application now includes enhanced image searching capabilities:
   - Analyzing the image source (subreddit)
   - Checking post titles for common meme phrases
   - Identifying posts from known meme subreddits
+  - Looking for indicators of quotes or text in titles
 - **More Results**: Each search returns 20 images instead of just 10
 - **Randomization**: Results are shuffled to ensure you get different images each time
 - **Higher Quality**: Behind the scenes, searches fetch 30 images and filter out lower quality options
 - **Consistent Experience**: Both genre and band searches use the same improvements
 - **Music-Focused Search**: Enhanced algorithms ensure genre searches return music-related images:
-  - Specific music subreddit targeting
-  - Genre-tailored search terms that always include music references
+  - Targeted music subreddit searching for each genre
   - Multi-stage search with fallback options to ensure relevant results
-  - Intelligent query construction with music-specific keywords like "concert," "band," "performance"
+  - Intelligent query construction with music-specific keywords
+  - Specialized configurations for different musical styles
 
 ### Text Rendering Features
 
@@ -172,9 +173,15 @@ This tool is for educational and personal use. Please respect copyright and Redd
 
 ## Recent Updates
 
+### v1.3.1 (March 2025)
+- Improved text filtering to ensure cleaner images without captions or text
+- Enhanced the genre filtering to maintain music context without modifying display names
+- Added more aggressive filtering for text-containing images
+- Optimized search queries to find authentic music-related content
+
 ### v1.3.0 (March 2025)
 - Enhanced music genre search with more accurate music-related image results
-- Added more specific genre options with proper music context
+- Added more specific genre options
 - Implemented smarter search algorithms with multiple fallback strategies
 - Improved search queries to focus on concerts, performances, and music-related content
 - Added specialized configurations for over 10 music genres
