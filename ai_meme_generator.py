@@ -10,6 +10,7 @@ import os
 import logging
 import base64
 import requests
+import re
 from io import BytesIO
 from typing import Tuple, Optional, Dict, Any
 from PIL import Image
@@ -146,6 +147,36 @@ class AIMemeGenerator:
             logger.error(f"Error extracting image from meme: {e}")
             return None
     
+    def _remove_emojis(self, text: str) -> str:
+        """
+        Remove emojis and other non-standard characters from text.
+        
+        Args:
+            text: The text to process
+            
+        Returns:
+            Text with emojis removed
+        """
+        # This pattern catches most common emojis and special characters
+        emoji_pattern = re.compile(
+            "["
+            "\U0001F600-\U0001F64F"  # emoticons
+            "\U0001F300-\U0001F5FF"  # symbols & pictographs
+            "\U0001F680-\U0001F6FF"  # transport & map symbols
+            "\U0001F700-\U0001F77F"  # alchemical symbols
+            "\U0001F780-\U0001F7FF"  # Geometric Shapes
+            "\U0001F800-\U0001F8FF"  # Supplemental Arrows-C
+            "\U0001F900-\U0001F9FF"  # Supplemental Symbols and Pictographs
+            "\U0001FA00-\U0001FA6F"  # Chess Symbols
+            "\U0001FA70-\U0001FAFF"  # Symbols and Pictographs Extended-A
+            "\U00002702-\U000027B0"  # Dingbats
+            "\U000024C2-\U0001F251" 
+            "]+", flags=re.UNICODE
+        )
+        
+        # Replace emojis with empty string
+        return emoji_pattern.sub(r'', text)
+    
     def generate_meme_text(self, image_path: str, context: Optional[str] = None) -> Tuple[str, str]:
         """
         Generate meme text (top and bottom) for an image using OpenAI API.
@@ -178,6 +209,8 @@ class AIMemeGenerator:
         - The viewer of the meme will ONLY see the image, not any Reddit post titles or descriptions
         - Make specific references to things visible in the image
         - Keep it punchy and memorable - meme text should be concise
+        - DO NOT include any emojis or special characters in the text, as they cause rendering issues
+        - Stick to plain text only with standard punctuation
         
         Respond with JSON in the format:
         {
@@ -217,15 +250,15 @@ class AIMemeGenerator:
             
             try:
                 result = json.loads(content)
-                top_text = result.get("top_text", "")
-                bottom_text = result.get("bottom_text", "")
+                top_text = self._remove_emojis(result.get("top_text", ""))
+                bottom_text = self._remove_emojis(result.get("bottom_text", ""))
                 return top_text, bottom_text
             except json.JSONDecodeError:
                 logger.error(f"Failed to parse JSON from OpenAI response: {content}")
                 # Fallback to simple text extraction
                 lines = content.strip().split('\n')
-                top_text = lines[0] if lines else ""
-                bottom_text = lines[-1] if len(lines) > 1 else ""
+                top_text = self._remove_emojis(lines[0] if lines else "")
+                bottom_text = self._remove_emojis(lines[-1] if len(lines) > 1 else "")
                 return top_text, bottom_text
                 
         except Exception as e:
@@ -258,6 +291,8 @@ class AIMemeGenerator:
         - Create meme text that directly relates to the visual elements in the image
         - The viewer of the meme will ONLY see the image, not any Reddit post titles or descriptions
         - Make specific references to things visible in the image and connect them to the band
+        - DO NOT include any emojis or special characters in the text, as they cause rendering issues
+        - Stick to plain text only with standard punctuation
         
         Be creative, clever, and make sure the joke would be understood by fans of {band_name}.
         
@@ -288,15 +323,15 @@ class AIMemeGenerator:
             
             try:
                 result = json.loads(content)
-                top_text = result.get("top_text", "")
-                bottom_text = result.get("bottom_text", "")
+                top_text = self._remove_emojis(result.get("top_text", ""))
+                bottom_text = self._remove_emojis(result.get("bottom_text", ""))
                 return top_text, bottom_text
             except json.JSONDecodeError:
                 logger.error(f"Failed to parse JSON from OpenAI response: {content}")
                 # Fallback to simple text extraction
                 lines = content.strip().split('\n')
-                top_text = lines[0] if lines else ""
-                bottom_text = lines[-1] if len(lines) > 1 else ""
+                top_text = self._remove_emojis(lines[0] if lines else "")
+                bottom_text = self._remove_emojis(lines[-1] if len(lines) > 1 else "")
                 return top_text, bottom_text
                 
         except Exception as e:
@@ -349,7 +384,7 @@ class AIMemeGenerator:
                 "personality": "extremely online social media addict",
                 "tone": "highly dramatic with stan culture vibes",
                 "references": "Taylor Swift, Instagram aesthetics, TikTok dances, cancel culture, streaming stats",
-                "style": "uses Gen Z slang, keyboard smashing, and far too many emojis"
+                "style": "uses Gen Z slang and keyboard smashing"
             }
         }
         
@@ -376,6 +411,8 @@ class AIMemeGenerator:
         - Create meme text that directly relates to the visual elements in the image
         - The viewer of the meme will ONLY see the image, not any Reddit post titles or descriptions
         - Make specific references to things visible in the image and connect them to {genre} music culture
+        - DO NOT include any emojis or special characters in the text, as they cause rendering issues
+        - Stick to plain text only with standard punctuation
         
         Make sure the meme text:
         1. Is concise and punchy (typical meme format)
@@ -449,15 +486,15 @@ class AIMemeGenerator:
         
         try:
             result = json.loads(content)
-            top_text = result.get("top_text", "")
-            bottom_text = result.get("bottom_text", "")
+            top_text = self._remove_emojis(result.get("top_text", ""))
+            bottom_text = self._remove_emojis(result.get("bottom_text", ""))
             return top_text, bottom_text
         except json.JSONDecodeError:
             logger.error(f"Failed to parse JSON from OpenAI response: {content}")
             # Fallback to simple text extraction
             lines = content.strip().split('\n')
-            top_text = lines[0] if lines else ""
-            bottom_text = lines[-1] if len(lines) > 1 else ""
+            top_text = self._remove_emojis(lines[0] if lines else "")
+            bottom_text = self._remove_emojis(lines[-1] if len(lines) > 1 else "")
             return top_text, bottom_text
     
     def generate_band_themed_meme(self, image_path: str, band_name: str, 
