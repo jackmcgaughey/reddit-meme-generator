@@ -75,7 +75,7 @@ def search_band_images():
                 images = reddit_api.get_guitar_memes(limit=10)
             
             # Store image URLs in session
-            image_list = [{'url': img.url, 'title': img.title} for img in images]
+            image_list = [{'url': img[1], 'title': img[0]} for img in images]
             
             return render_template('band_image_results.html', images=image_list, band_name=band_name)
         
@@ -107,7 +107,13 @@ def generate_band_meme():
             
             # Create the meme
             output_path = os.path.join(current_app.config['GENERATED_FOLDER'], f"{unique_id}_meme.jpg")
-            image_editor.generate_meme(image_path, output_path, top_text, bottom_text)
+            image_editor.generate_meme(
+                image_path=image_path,
+                top_text=top_text,
+                bottom_text=bottom_text,
+                output_filename=output_path,
+                use_local_image=True
+            )
             
             # Return the meme page
             return render_template('meme_result.html', 
@@ -152,7 +158,7 @@ def search_genre_images():
                 images = reddit_api.get_guitar_memes(limit=10)
             
             # Store image URLs in session
-            image_list = [{'url': img.url, 'title': img.title} for img in images]
+            image_list = [{'url': img[1], 'title': img[0]} for img in images]
             
             return render_template('genre_image_results.html', images=image_list, genre=genre)
         
@@ -184,7 +190,13 @@ def generate_genre_meme():
             
             # Create the meme
             output_path = os.path.join(current_app.config['GENERATED_FOLDER'], f"{unique_id}_meme.jpg")
-            image_editor.generate_meme(image_path, output_path, top_text, bottom_text)
+            image_editor.generate_meme(
+                image_path=image_path,
+                top_text=top_text,
+                bottom_text=bottom_text,
+                output_filename=output_path,
+                use_local_image=True
+            )
             
             # Return the meme page
             return render_template('meme_result.html', 
@@ -230,7 +242,13 @@ def regenerate_meme():
             
             # Create the meme with new text
             output_path = os.path.join(current_app.config['GENERATED_FOLDER'], f"{unique_id}_meme.jpg")
-            image_editor.generate_meme(original_image_path, output_path, top_text, bottom_text)
+            image_editor.generate_meme(
+                image_path=original_image_path,
+                top_text=top_text,
+                bottom_text=bottom_text,
+                output_filename=output_path,
+                use_local_image=True
+            )
             
             # Return the meme page
             return render_template('meme_result.html', 
@@ -254,6 +272,40 @@ def serve_meme(filename):
 def serve_upload(filename):
     """Serve uploaded images."""
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
+
+@bp.route('/gallery')
+def gallery():
+    """Display a gallery of previously generated memes."""
+    try:
+        # Get list of generated meme files
+        meme_folder = current_app.config['GENERATED_FOLDER']
+        meme_files = [f for f in os.listdir(meme_folder) 
+                     if os.path.isfile(os.path.join(meme_folder, f)) 
+                     and f.endswith(('.jpg', '.jpeg', '.png', '.gif'))]
+        
+        # Sort by creation time (newest first)
+        meme_files.sort(key=lambda x: os.path.getctime(os.path.join(meme_folder, x)), reverse=True)
+        
+        # Limit to most recent 20 memes
+        meme_files = meme_files[:20]
+        
+        # Create list of meme URLs
+        memes = [{'url': url_for('main.serve_meme', filename=f), 
+                 'filename': f,
+                 'created': os.path.getctime(os.path.join(meme_folder, f))} 
+                for f in meme_files]
+        
+        return render_template('gallery.html', memes=memes)
+        
+    except Exception as e:
+        logger.error(f"Error loading gallery: {e}", exc_info=True)
+        flash(f'Error loading gallery: {str(e)}')
+        return redirect(url_for('main.index'))
+
+@bp.route('/about')
+def about():
+    """Display the about page."""
+    return render_template('about.html')
 
 @bp.route('/upload-image', methods=['POST'])
 def upload_image():

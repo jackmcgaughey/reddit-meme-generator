@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}Shreddit Meme Generator - Gallery{% endblock %}
+
+{% block content %}
+<div class="jumbotron text-center">
+    <h1 class="display-4">Meme Gallery</h1>
+    <p class="lead">Check out these fresh rock and roll memes!</p>
+    <hr class="my-4">
+</div>
+
+<div class="container">
+    {% if memes %}
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2>Recent Memes</h2>
+                    <div>
+                        <a href="{{ url_for('main.guitar_band_memes') }}" class="btn btn-primary">
+                            <i class="fas fa-guitar me-2"></i>Create Band Meme
+                        </a>
+                        <a href="{{ url_for('main.genre_memes') }}" class="btn btn-secondary ms-2">
+                            <i class="fas fa-music me-2"></i>Create Genre Meme
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            {% for meme in memes %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 gallery-card">
+                        <img src="{{ meme.url }}" class="card-img-top" alt="Meme">
+                        <div class="card-body">
+                            <h5 class="card-title text-truncate">{{ meme.filename }}</h5>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    Created: {{ meme.created|datetime }}
+                                </small>
+                            </p>
+                            <a href="{{ meme.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                <i class="fas fa-expand-alt me-1"></i>View Full Size
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="row">
+            <div class="col-12 text-center py-5">
+                <div class="card shadow p-5">
+                    <h3><i class="fas fa-guitar fa-spin me-2"></i>No memes yet!</h3>
+                    <p class="lead mt-3">Create your first meme now to get started.</p>
+                    <div class="mt-4">
+                        <a href="{{ url_for('main.guitar_band_memes') }}" class="btn btn-lg btn-primary me-3">
+                            Create Band Meme
+                        </a>
+                        <a href="{{ url_for('main.genre_memes') }}" class="btn btn-lg btn-secondary">
+                            Create Genre Meme
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .gallery-card {
+        transition: transform 0.3s, box-shadow 0.3s;
+        overflow: hidden;
+    }
+    
+    .gallery-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+    }
+    
+    .gallery-card img {
+        transition: transform 0.5s;
+        height: 250px;
+        object-fit: cover;
+    }
+    
+    .gallery-card:hover img {
+        transform: scale(1.05);
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Filter for formatting the datetime
+    document.addEventListener('DOMContentLoaded', function() {
+        // Format timestamp to readable date
+        const formatDate = function(timestamp) {
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleString();
+        };
+        
+        // Replace all timestamps with formatted dates
+        document.querySelectorAll('[data-timestamp]').forEach(function(el) {
+            el.textContent = formatDate(el.dataset.timestamp);
+        });
+    });
+</script>
+{% endblock %} 

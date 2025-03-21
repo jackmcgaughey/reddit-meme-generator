@@ -449,12 +449,56 @@ class RedditMemeAPI:
         return False
     
     def _validate_image_url(self, url: str) -> bool:
-        """Validate that the URL is accessible."""
+        """
+        Check if an image URL is valid and accessible.
+        
+        Args:
+            url: URL to check
+            
+        Returns:
+            bool: True if URL is accessible and contains a valid image
+        """
         try:
-            # Just do a HEAD request to verify URL is valid
-            response = requests.head(url, timeout=3)
+            response = requests.head(url, timeout=5)
             return response.status_code == 200
-        except requests.RequestException:
+        except Exception:
+            return False
+    
+    def download_image(self, url: str, save_path: str) -> bool:
+        """
+        Download an image from a URL and save it to the specified path.
+        
+        Args:
+            url: URL of the image to download
+            save_path: Local path where the image should be saved
+            
+        Returns:
+            bool: True if download and save were successful, False otherwise
+        """
+        try:
+            # Verify the URL points to an image
+            if not self._is_image_url(url):
+                logger.error(f"URL does not point to an image: {url}")
+                return False
+                
+            # Download the image
+            response = requests.get(url, stream=True, timeout=10)
+            
+            # Check if request was successful
+            if response.status_code != 200:
+                logger.error(f"Failed to download image from {url}, status code: {response.status_code}")
+                return False
+                
+            # Save the image to the specified path
+            with open(save_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+                    
+            logger.info(f"Image successfully downloaded from {url} and saved to {save_path}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error downloading image from {url}: {str(e)}")
             return False
     
     def _check_credentials(self) -> bool:

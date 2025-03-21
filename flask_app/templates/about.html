@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Shreddit Meme Generator - About{% endblock %}
+
+{% block content %}
+<div class="jumbotron text-center">
+    <h1 class="display-4">About Shreddit Meme Generator</h1>
+    <p class="lead">The ultimate tool for creating guitar and music-themed memes</p>
+    <hr class="my-4">
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="card mb-5">
+                <div class="card-body">
+                    <h2 class="card-title mb-4 text-center">What is Shreddit Meme Generator?</h2>
+                    <p class="lead">
+                        Shreddit Meme Generator is a powerful tool that combines AI technology with your love for music to create hilarious, shareable memes about your favorite bands and genres.
+                    </p>
+                    
+                    <h3 class="mt-5"><i class="fas fa-lightbulb text-warning me-2"></i>Our Mission</h3>
+                    <p>
+                        We believe in the power of music and humor to bring people together. Our mission is to provide an easy-to-use platform for music fans to express their passion, share inside jokes, and connect with fellow enthusiasts through the universal language of memes.
+                    </p>
+                    
+                    <h3 class="mt-5"><i class="fas fa-cogs text-secondary me-2"></i>How It Works</h3>
+                    <p>
+                        Shreddit Meme Generator uses advanced AI technology to understand band histories, musical styles, and genre-specific humor. When you select a band or genre, our AI crafts text that captures the essence of your selection, incorporating references that true fans will appreciate.
+                    </p>
+                    <p>
+                        The meme creation process is simple:
+                    </p>
+                    <ol>
+                        <li>Choose a band or genre theme for your meme</li>
+                        <li>Select or upload an image</li>
+                        <li>Our AI generates clever, contextually appropriate text</li>
+                        <li>Share your creation with the world!</li>
+                    </ol>
+                    
+                    <h3 class="mt-5"><i class="fas fa-palette text-primary me-2"></i>Key Features</h3>
+                    <ul>
+                        <li><strong>Band-specific memes</strong> - Generate text tailored to bands like Metallica, Led Zeppelin, The Beatles, and more</li>
+                        <li><strong>Genre-themed memes</strong> - Create memes that capture the spirit of rock, jazz, metal, hip-hop, and other genres</li>
+                        <li><strong>Custom image upload</strong> - Use your own images for complete creative control</li>
+                        <li><strong>Reddit integration</strong> - Find relevant images from Reddit's vast collection</li>
+                        <li><strong>AI-powered text generation</strong> - Get clever, contextually appropriate text for your memes</li>
+                    </ul>
+                    
+                    <h3 class="mt-5"><i class="fas fa-code text-info me-2"></i>Technical Details</h3>
+                    <p>
+                        Shreddit Meme Generator is built with:
+                    </p>
+                    <ul>
+                        <li>Python - Core application logic</li>
+                        <li>Flask - Web framework</li>
+                        <li>OpenAI API - AI-powered text generation</li>
+                        <li>Pillow - Image processing and meme creation</li>
+                        <li>PRAW - Reddit API integration</li>
+                        <li>Bootstrap - Modern, responsive UI design</li>
+                    </ul>
+                    
+                    <h3 class="mt-5"><i class="fas fa-users text-success me-2"></i>Community</h3>
+                    <p>
+                        We're building a community of music-loving meme creators! Share your creations on social media with <strong>#ShredditMeme</strong> to connect with other users.
+                    </p>
+                    
+                    <div class="text-center mt-5">
+                        <a href="{{ url_for('main.index') }}" class="btn btn-lg btn-primary">Start Creating!</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

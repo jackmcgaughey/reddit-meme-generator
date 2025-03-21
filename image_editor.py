@@ -337,7 +337,16 @@ class MemeEditor:
             ValueError: If image cannot be loaded or is an unsupported format
         """
         try:
-            img = Image.open(image_source)
+            # Handle string paths
+            if isinstance(image_source, str):
+                if os.path.exists(image_source):
+                    # It's a local file path
+                    img = Image.open(image_source)
+                else:
+                    raise ValueError(f"File not found: {image_source}")
+            else:
+                # Handle BytesIO or other file-like objects
+                img = Image.open(image_source)
             
             # Convert to RGB if it's RGBA, to ensure compatibility
             if img.mode == 'RGBA':

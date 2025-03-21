@@ -3,6 +3,7 @@ Flask application for Shreddit Meme Generator.
 """
 import os
 from flask import Flask
+from datetime import datetime
 
 def create_app(test_config=None):
     # Create and configure the app
@@ -24,6 +25,12 @@ def create_app(test_config=None):
     # Ensure the upload and generated folders exist
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     os.makedirs(app.config['GENERATED_FOLDER'], exist_ok=True)
+
+    # Register Jinja2 filters
+    @app.template_filter('datetime')
+    def format_datetime(timestamp):
+        """Format a timestamp to a readable date and time."""
+        return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
     # Register blueprints
     from flask_app.routes import main
