@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Shreddit Meme Generator - Home{% endblock %}
+
+{% block content %}
+<div class="jumbotron text-center">
+    <h1 class="display-4">Shreddit Meme Generator</h1>
+    <p class="lead">Create epic guitar and music-themed memes with AI assistance!</p>
+    <hr class="my-4">
+    <p>Choose a meme style to get started</p>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-guitar fa-4x mb-3 text-primary"></i>
+                <h3 class="card-title">Band-Themed Memes</h3>
+                <p class="card-text">Generate memes featuring your favorite bands. Our AI will craft hilarious captions tailored to the band's style and legacy.</p>
+                <a href="{{ url_for('main.guitar_band_memes') }}" class="btn btn-primary">Create Band Meme</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-music fa-4x mb-3 text-secondary"></i>
+                <h3 class="card-title">Genre-Themed Memes</h3>
+                <p class="card-text">Create memes based on music genres. Our AI will generate text that captures the essence and humor of your chosen genre.</p>
+                <a href="{{ url_for('main.genre_memes') }}" class="btn btn-secondary">Create Genre Meme</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title text-center">How It Works</h3>
+                <div class="row mt-4">
+                    <div class="col-md-4 text-center">
+                        <div class="rounded-circle bg-primary text-white d-inline-flex justify-content-center align-items-center mb-3" style="width: 60px; height: 60px;">
+                            <span class="fs-4">1</span>
+                        </div>
+                        <h5>Choose Your Theme</h5>
+                        <p>Select between band-themed or genre-themed memes</p>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="rounded-circle bg-primary text-white d-inline-flex justify-content-center align-items-center mb-3" style="width: 60px; height: 60px;">
+                            <span class="fs-4">2</span>
+                        </div>
+                        <h5>Find or Upload an Image</h5>
+                        <p>Search for images related to your band or genre, or upload your own</p>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="rounded-circle bg-primary text-white d-inline-flex justify-content-center align-items-center mb-3" style="width: 60px; height: 60px;">
+                            <span class="fs-4">3</span>
+                        </div>
+                        <h5>Generate Your Meme</h5>
+                        <p>Our AI creates clever text for your meme based on your choices</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-12 text-center">
+        <h3>Ready to rock the meme world?</h3>
+        <div class="mt-4">
+            <a href="{{ url_for('main.guitar_band_memes') }}" class="btn btn-lg btn-primary me-3">Create Band Meme</a>
+            <a href="{{ url_for('main.genre_memes') }}" class="btn btn-lg btn-secondary">Create Genre Meme</a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}Shreddit Meme Generator - Genre Memes{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-5">Genre-Themed Meme Generator</h1>
+    <p class="lead">Create memes based on music genres with AI-generated captions.</p>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Select a Music Genre</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('main.search_genre_images') }}" method="post">
+                    <div class="form-group mb-3">
+                        <label for="genre" class="form-label">Music Genre:</label>
+                        <select class="form-select" id="genre" name="genre" required>
+                            <option value="" selected disabled>-- Select a Genre --</option>
+                            {% for genre in genres %}
+                            <option value="{{ genre }}">{{ genre }}</option>
+                            {% endfor %}
+                            <option value="Other">Other (Custom)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group mb-3" id="custom_genre_div" style="display: none;">
+                        <label for="custom_genre" class="form-label">Custom Genre:</label>
+                        <input type="text" class="form-control" id="custom_genre" name="custom_genre" placeholder="Enter a custom music genre">
+                        <small class="text-muted">Examples: Death Metal, Progressive Rock, K-Pop, Bluegrass, etc.</small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Search for Genre Images</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h4 class="mb-0">Upload Your Own Image</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('main.upload_image') }}" method="post" enctype="multipart/form-data">
+                    <div class="form-group mb-3">
+                        <label for="file" class="form-label">Select an image:</label>
+                        <input type="file" class="form-control" id="file" name="file" accept="image/*" required>
+                        <small class="text-muted">Supported formats: JPG, PNG, GIF</small>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="upload_genre_select" class="form-label">Music Genre:</label>
+                        <select class="form-select" id="upload_genre_select" name="genre" required>
+                            <option value="" selected disabled>-- Select a Genre --</option>
+                            {% for genre in genres %}
+                            <option value="{{ genre }}">{{ genre }}</option>
+                            {% endfor %}
+                            <option value="Other">Other (Custom)</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3" id="upload_custom_genre_div" style="display: none;">
+                        <label for="upload_custom_genre" class="form-label">Custom Genre:</label>
+                        <input type="text" class="form-control" id="upload_custom_genre" name="custom_genre" placeholder="Enter a custom music genre">
+                    </div>
+                    <input type="hidden" name="target" value="genre">
+                    <button type="submit" class="btn btn-secondary">Upload and Continue</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if request.args.get('uploaded_image') %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card bg-light">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">Create Meme with Uploaded Image</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <img src="{{ url_for('main.serve_upload', filename=request.args.get('uploaded_image')) }}" class="img-fluid rounded" alt="Uploaded image">
+                    </div>
+                    <div class="col-md-6">
+                        <form action="{{ url_for('main.generate_genre_meme') }}" method="post">
+                            <div class="form-group mb-3">
+                                <label for="meme_genre_select" class="form-label">Music Genre:</label>
+                                <select class="form-select" id="meme_genre_select" name="genre" required>
+                                    <option value="" selected disabled>-- Select a Genre --</option>
+                                    {% for genre in genres %}
+                                    <option value="{{ genre }}">{{ genre }}</option>
+                                    {% endfor %}
+                                    <option value="Other">Other (Custom)</option>
+                                </select>
+                            </div>
+                            <div class="form-group mb-3" id="meme_custom_genre_div" style="display: none;">
+                                <label for="meme_custom_genre" class="form-label">Custom Genre:</label>
+                                <input type="text" class="form-control" id="meme_custom_genre" name="custom_genre" placeholder="Enter a custom music genre">
+                            </div>
+                            <input type="hidden" name="image_url" value="{{ url_for('main.serve_upload', filename=request.args.get('uploaded_image')) }}">
+                            <button type="submit" class="btn btn-success">Generate Meme</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="mt-4 text-center">
+    <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">Back to Home</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Show/hide custom genre input field based on selection
+    document.addEventListener('DOMContentLoaded', function() {
+        // For search form
+        const genreSelect = document.getElementById('genre');
+        const customGenreDiv = document.getElementById('custom_genre_div');
+        const customGenreInput = document.getElementById('custom_genre');
+        
+        if (genreSelect) {
+            genreSelect.addEventListener('change', function() {
+                if (this.value === 'Other') {
+                    customGenreDiv.style.display = 'block';
+                    customGenreInput.setAttribute('required', 'required');
+                } else {
+                    customGenreDiv.style.display = 'none';
+                    customGenreInput.removeAttribute('required');
+                }
+            });
+        }
+        
+        // For upload form
+        const uploadGenreSelect = document.getElementById('upload_genre_select');
+        const uploadCustomGenreDiv = document.getElementById('upload_custom_genre_div');
+        const uploadCustomGenreInput = document.getElementById('upload_custom_genre');
+        
+        if (uploadGenreSelect) {
+            uploadGenreSelect.addEventListener('change', function() {
+                if (this.value === 'Other') {
+                    uploadCustomGenreDiv.style.display = 'block';
+                    uploadCustomGenreInput.setAttribute('required', 'required');
+                } else {
+                    uploadCustomGenreDiv.style.display = 'none';
+                    uploadCustomGenreInput.removeAttribute('required');
+                }
+            });
+        }
+        
+        // For meme generation form
+        const memeGenreSelect = document.getElementById('meme_genre_select');
+        const memeCustomGenreDiv = document.getElementById('meme_custom_genre_div');
+        const memeCustomGenreInput = document.getElementById('meme_custom_genre');
+        
+        if (memeGenreSelect) {
+            memeGenreSelect.addEventListener('change', function() {
+                if (this.value === 'Other') {
+                    memeCustomGenreDiv.style.display = 'block';
+                    memeCustomGenreInput.setAttribute('required', 'required');
+                } else {
+                    memeCustomGenreDiv.style.display = 'none';
+                    memeCustomGenreInput.removeAttribute('required');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %} 

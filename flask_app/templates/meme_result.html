@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Shreddit Meme Generator - Your Meme{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-5">Your Generated Meme</h1>
+    <p class="lead">
+        {% if source_type == 'band' %}
+        Band-themed meme featuring {{ source_name }}
+        {% elif source_type == 'genre' %}
+        {{ source_name }} genre-themed meme
+        {% else %}
+        Your custom meme
+        {% endif %}
+    </p>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Generated Meme</h4>
+            </div>
+            <div class="card-body text-center">
+                <img src="{{ meme_path }}" alt="Generated meme" class="meme-result img-fluid mb-3">
+                
+                <div class="meme-details p-3 bg-light rounded mb-3">
+                    <h5>Meme Text:</h5>
+                    <p class="mb-2"><strong>Top:</strong> {{ top_text }}</p>
+                    <p><strong>Bottom:</strong> {{ bottom_text }}</p>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <a href="{{ meme_path }}" download class="btn btn-success w-100">
+                            <i class="fas fa-download me-2"></i> Download Meme
+                        </a>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <form action="{{ url_for('main.regenerate_meme') }}" method="post">
+                            <input type="hidden" name="image_path" value="{{ meme_path }}">
+                            <input type="hidden" name="source_type" value="{{ source_type }}">
+                            <input type="hidden" name="source_name" value="{{ source_name }}">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-sync-alt me-2"></i> Regenerate Text
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h4 class="mb-0">Create Another Meme</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <a href="{{ url_for('main.guitar_band_memes') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-guitar me-2"></i> Create Band Meme
+                        </a>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <a href="{{ url_for('main.genre_memes') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-music me-2"></i> Create Genre Meme
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <a href="{{ url_for('main.index') }}" class="btn btn-outline-dark">
+                <i class="fas fa-home me-2"></i> Back to Home
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

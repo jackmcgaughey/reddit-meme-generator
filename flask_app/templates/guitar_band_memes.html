@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}Shreddit Meme Generator - Band Memes{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-5">Band-Themed Meme Generator</h1>
+    <p class="lead">Create memes featuring your favorite bands with AI-generated captions.</p>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Search for Band Images</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('main.search_band_images') }}" method="post">
+                    <div class="form-group mb-3">
+                        <label for="band_name" class="form-label">Band Name:</label>
+                        <input type="text" class="form-control" id="band_name" name="band_name" placeholder="Enter a band name (e.g., Metallica, Beatles, Queen)" required>
+                        <small class="text-muted">Popular bands like 'Metallica', 'Beatles', or 'Queen' usually give better results.</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Search for Band Images</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h4 class="mb-0">Upload Your Own Image</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('main.upload_image') }}" method="post" enctype="multipart/form-data">
+                    <div class="form-group mb-3">
+                        <label for="file" class="form-label">Select an image:</label>
+                        <input type="file" class="form-control" id="file" name="file" accept="image/*" required>
+                        <small class="text-muted">Supported formats: JPG, PNG, GIF</small>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="upload_band_name" class="form-label">Band Name:</label>
+                        <input type="text" class="form-control" id="upload_band_name" name="band_name" placeholder="Enter a band name" required>
+                    </div>
+                    <input type="hidden" name="target" value="band">
+                    <button type="submit" class="btn btn-secondary">Upload and Continue</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if request.args.get('uploaded_image') %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card bg-light">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">Create Meme with Uploaded Image</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <img src="{{ url_for('main.serve_upload', filename=request.args.get('uploaded_image')) }}" class="img-fluid rounded" alt="Uploaded image">
+                    </div>
+                    <div class="col-md-6">
+                        <form action="{{ url_for('main.generate_band_meme') }}" method="post">
+                            <div class="form-group mb-3">
+                                <label for="meme_band_name" class="form-label">Band Name:</label>
+                                <input type="text" class="form-control" id="meme_band_name" name="band_name" required>
+                            </div>
+                            <input type="hidden" name="image_url" value="{{ url_for('main.serve_upload', filename=request.args.get('uploaded_image')) }}">
+                            <button type="submit" class="btn btn-success">Generate Meme</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="mt-4 text-center">
+    <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">Back to Home</a>
+</div>
+{% endblock %} 

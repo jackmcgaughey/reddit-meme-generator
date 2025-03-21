@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}Shreddit Meme Generator - Genre Image Results{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-5">Genre Image Results</h1>
+    <p class="lead">Select an image to create a meme for "{{ genre }}" music</p>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Found {{ images|length }} images for "{{ genre }}"</h5>
+                <p>Click on an image to create a meme with it. The AI will generate captions based on the genre's characteristics and culture.</p>
+                <a href="{{ url_for('main.genre_memes') }}" class="btn btn-outline-secondary">Go Back</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if images %}
+<div class="image-grid">
+    {% for image in images %}
+    <div class="image-card">
+        <form action="{{ url_for('main.generate_genre_meme') }}" method="post" class="image-form">
+            <input type="hidden" name="image_url" value="{{ image.url }}">
+            <input type="hidden" name="genre" value="{{ genre }}">
+            <img src="{{ image.url }}" alt="{{ image.title }}" class="clickable-image">
+            <div class="image-overlay">
+                <button type="submit" class="btn btn-sm btn-primary w-100">Use this image</button>
+            </div>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-warning">
+    <p>No images found for "{{ genre }}". Try a different genre or upload your own image.</p>
+    <a href="{{ url_for('main.genre_memes') }}" class="btn btn-outline-primary">Go back</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block styles %}
+<style>
+    .image-form {
+        width: 100%;
+        height: 100%;
+    }
+    
+    .clickable-image {
+        cursor: pointer;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Alternative method to click the form submit button when the image is clicked
+        const clickableImages = document.querySelectorAll('.clickable-image');
+        clickableImages.forEach(image => {
+            image.addEventListener('click', function() {
+                const submitButton = this.parentElement.querySelector('button[type="submit"]');
+                submitButton.click();
+            });
+        });
+    });
+</script>
+{% endblock %} 

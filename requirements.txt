@@ -2,4 +2,6 @@ praw==7.7.1
 Pillow==10.1.0
 requests==2.31.0
 openai==1.68.0
-python-dotenv==1.0.1 
+python-dotenv==1.0.1
+Flask>=3.1.0
+flask-wtf>=1.2.2 
