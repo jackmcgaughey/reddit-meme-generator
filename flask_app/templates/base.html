@@ -11,39 +11,60 @@
     <!-- Custom CSS -->
     <style>
         :root {
-            --primary-color: #6200ea;
-            --secondary-color: #0091ea;
-            --accent-color: #ff9100;
-            --dark-color: #212121;
-            --light-color: #f5f5f5;
+            --primary-color: #1A2639;        /* Distressed dark denim */
+            --secondary-color: #8B4513;      /* Worn leather brown */
+            --accent-color: #D4AF37;         /* Vintage gold */
+            --dark-color: #26231C;           /* Deep vintage brown */
+            --light-color: #F5F5DC;          /* Cream */
+            --deep-red: #800020;             /* Deep burgundy */
+            --forest-green: #228B22;         /* Forest green accent */
+            --text-color: #F5F5DC;           /* Cream text */
+        }
+        
+        @font-face {
+            font-family: 'Oswald';
+            src: url('https://fonts.gstatic.com/s/oswald/v49/TK3IWkUHHAIjg75cFRf3bXL8LICs1_Fw0aQ.woff2') format('woff2');
         }
         
         body {
             font-family: 'Roboto', sans-serif;
-            background-color: var(--light-color);
+            background-color: var(--primary-color);
+            color: var(--text-color);
             padding-top: 56px;
+            background-image: url('https://www.transparenttextures.com/patterns/denim.png');
         }
         
         .navbar {
-            background-color: var(--primary-color);
+            background-color: var(--dark-color);
+            border-bottom: 3px solid var(--accent-color);
+            font-family: 'Oswald', sans-serif;
         }
         
         .navbar-brand, .nav-link {
-            color: white;
+            color: var(--accent-color);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
         }
         
         .nav-link:hover {
-            color: var(--accent-color);
+            color: #FFFFFF;
         }
         
         .jumbotron {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
+            background: linear-gradient(135deg, var(--dark-color), var(--primary-color));
+            color: var(--accent-color);
             padding: 2rem;
             border-radius: 0.5rem;
             margin-bottom: 2rem;
             position: relative;
             overflow: hidden;
+            border: 1px solid var(--accent-color);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
         }
         
         .jumbotron::after {
@@ -53,15 +74,26 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: url('https://www.transparenttextures.com/patterns/cubes.png');
-            opacity: 0.1;
+            background: url('https://www.transparenttextures.com/patterns/leather.png');
+            opacity: 0.4;
+        }
+        
+        .jumbotron h1, .jumbotron .display-5 {
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
         }
         
         .card {
             border: none;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background-color: var(--dark-color);
+            color: var(--text-color);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
             transition: transform 0.3s;
             margin-bottom: 1.5rem;
+            border-radius: 0.5rem;
+            border-left: 3px solid var(--accent-color);
         }
         
         .card:hover {
@@ -69,39 +101,69 @@
         }
         
         .card-title {
-            color: var(--primary-color);
+            color: var(--accent-color);
+            font-weight: bold;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .card-header {
+            background-color: rgba(0,0,0,0.2);
+            border-bottom: 1px solid var(--accent-color);
         }
         
         .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+            background-color: var(--secondary-color);
+            border-color: var(--accent-color);
+            color: var(--text-color);
+            font-weight: bold;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
         
         .btn-primary:hover {
-            background-color: #5000d6;
-            border-color: #5000d6;
+            background-color: var(--accent-color);
+            border-color: var(--secondary-color);
+            color: var(--dark-color);
         }
         
         .btn-secondary {
-            background-color: var(--secondary-color);
-            border-color: var(--secondary-color);
+            background-color: var(--deep-red);
+            border-color: var(--accent-color);
+            color: var(--text-color);
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
         
         .btn-secondary:hover {
-            background-color: #0080d1;
-            border-color: #0080d1;
+            background-color: var(--accent-color);
+            border-color: var(--deep-red);
+            color: var(--dark-color);
         }
         
         .btn-accent {
             background-color: var(--accent-color);
-            border-color: var(--accent-color);
-            color: white;
+            border-color: var(--secondary-color);
+            color: var(--dark-color);
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
         
         .btn-accent:hover {
-            background-color: #e68200;
-            border-color: #e68200;
-            color: white;
+            background-color: var(--dark-color);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+        
+        .btn-outline-secondary, .btn-outline-primary {
+            color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+        
+        .btn-outline-secondary:hover, .btn-outline-primary:hover {
+            background-color: var(--accent-color);
+            color: var(--dark-color);
         }
         
         .image-grid {
@@ -116,6 +178,8 @@
             overflow: hidden;
             border-radius: 0.5rem;
             cursor: pointer;
+            border: 2px solid var(--secondary-color);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
         }
         
         .image-card img {
@@ -123,6 +187,7 @@
             height: 100%;
             object-fit: cover;
             transition: transform 0.3s;
+            filter: saturate(1.1);
         }
         
         .image-card:hover img {
@@ -134,11 +199,12 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: rgba(0,0,0,0.7);
-            color: white;
+            background: rgba(38, 35, 28, 0.85);
+            color: var(--text-color);
             padding: 0.5rem;
             transform: translateY(100%);
             transition: transform 0.3s;
+            border-top: 2px solid var(--accent-color);
         }
         
         .image-card:hover .image-overlay {
@@ -148,14 +214,17 @@
         .meme-result {
             max-width: 100%;
             border-radius: 0.5rem;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            border: 3px solid var(--accent-color);
         }
         
         footer {
             background-color: var(--dark-color);
-            color: white;
+            color: var(--text-color);
             padding: 2rem 0;
             margin-top: 3rem;
+            border-top: 3px solid var(--accent-color);
+            background-image: url('https://www.transparenttextures.com/patterns/leather.png');
         }
         
         /* Custom animations */
@@ -171,14 +240,50 @@
         /* Flash messages */
         .alert {
             border-radius: 0;
-            border: none;
+            border-left: 4px solid var(--accent-color);
             margin-bottom: 0;
+            background-color: var(--dark-color);
+            color: var(--text-color);
         }
         
         /* Custom styles for forms */
+        .form-control {
+            background-color: rgba(245, 245, 220, 0.9);
+            border: 1px solid var(--secondary-color);
+        }
+        
         .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.25rem rgba(98, 0, 234, 0.25);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 0.25rem rgba(212, 175, 55, 0.25);
+            background-color: rgba(245, 245, 220, 1);
+        }
+        
+        .form-select {
+            background-color: rgba(245, 245, 220, 0.9);
+            border: 1px solid var(--secondary-color);
+        }
+        
+        .form-select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 0.25rem rgba(212, 175, 55, 0.25);
+            background-color: rgba(245, 245, 220, 1);
+        }
+        
+        /* Apply a subtle worn/vintage effect to various elements */
+        .card, .btn, .navbar, .jumbotron {
+            position: relative;
+        }
+        
+        .card::before, .jumbotron::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://www.transparenttextures.com/patterns/scratches.png');
+            opacity: 0.1;
+            pointer-events: none;
         }
     </style>
     {% block styles %}{% endblock %}
@@ -244,7 +349,7 @@
                     <h5>Shreddit Meme Generator</h5>
                     <p>Create epic guitar and music-themed memes with AI assistance</p>
                     <hr>
-                    <p>&copy; 2023 Shreddit Meme Generator</p>
+                    <p>&copy; 2025 Shreddit Meme Generator</p>
                 </div>
             </div>
         </div>
