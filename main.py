@@ -296,18 +296,41 @@ class MemeGeneratorApp:
             title: Title of the meme
             image_url: URL of the meme image
         """
+        # Check if it's a video URL first
+        if (image_url.lower().endswith(('.mp4', '.webm', '.mov', '.gifv')) or 
+            any(pattern in image_url.lower() for pattern in ['v.redd.it', 'youtube.com', 'youtu.be', 'vimeo.com'])):
+            self.ui.display_error("Video content detected. Video support will be added in a future update.")
+            return
+            
         # Get meme text
         top_text, bottom_text = self.ui.get_meme_text()
         
         # Generate meme
-        output_path = self.image_editor.generate_meme(
-            image_path=image_url,
-            top_text=top_text,
-            bottom_text=bottom_text
-        )
-        
-        # Display result
-        self.ui.display_generated_meme(output_path)
+        try:
+            output_path = self.image_editor.generate_meme(
+                image_path=image_url,
+                top_text=top_text,
+                bottom_text=bottom_text
+            )
+            
+            # Display result
+            self.ui.display_generated_meme(output_path)
+            
+            # Save the most recent meme for possible regeneration
+            self.last_meme = {
+                "path": output_path,
+                "type": "regular",
+                "image_url": image_url
+            }
+        except ValueError as e:
+            if "video content" in str(e).lower():
+                self.ui.display_error(f"Cannot process this content: {str(e)}")
+            elif "unsupported" in str(e).lower() or "format" in str(e).lower():
+                self.ui.display_error(f"Image format error: {str(e)}")
+            else:
+                self.ui.display_error(f"Error generating meme: {str(e)}")
+        except Exception as e:
+            self.ui.display_error(f"Error generating meme: {str(e)}")
     
     def handle_guitar_band_memes(self):
         """Handle guitar-related meme generation with band customization."""
@@ -414,15 +437,14 @@ class MemeGeneratorApp:
         Args:
             title: Title of the meme
             image_url: URL of the meme image
-            band_name: Name of the band for the meme
+            band_name: Name of the band to reference in the meme
         """
         # Check if AI generator is available for custom text generation
         if self.ai_generator and self.ai_generator.is_api_key_configured():
-            # Use AI to generate band-themed meme text
             try:
                 self.ui.display_info(f"Generating {band_name}-themed meme text with AI...")
                 
-                # Download the image first to have it locally for analysis
+                # Download the image first if it's a URL
                 local_image_path = None
                 try:
                     if image_url.startswith(('http://', 'https://')):
@@ -432,6 +454,12 @@ class MemeGeneratorApp:
                         
                         response = requests.get(image_url, timeout=10)
                         response.raise_for_status()
+                        
+                        # Check content type for videos
+                        content_type = response.headers.get('Content-Type', '').lower()
+                        if 'video' in content_type or '.mp4' in image_url.lower() or 'v.redd.it' in image_url.lower():
+                            self.ui.display_error("Video content detected. Video support will be added in a future update.")
+                            return
                         
                         temp_dir = "temp_images"
                         if not os.path.exists(temp_dir):
@@ -451,86 +479,67 @@ class MemeGeneratorApp:
                     else:
                         # Local file, use it directly
                         top_text, bottom_text = self.ai_generator.generate_band_meme_text(band_name, "")
-                except Exception as e:
+                except requests.RequestException as e:
+                    if 'video' in str(e).lower():
+                        self.ui.display_error("Video content detected. Video support will be added in a future update.")
+                        return
                     logger.error(f"Error downloading image for analysis: {str(e)}")
                     # Fallback to using title
                     top_text, bottom_text = self.ai_generator.generate_band_meme_text(band_name, title)
                 
                 # Generate the actual meme
+                try:
+                    output_path = self.image_editor.generate_meme(
+                        image_path=image_url,
+                        top_text=top_text,
+                        bottom_text=bottom_text
+                    )
+                    
+                    # Display the generated meme
+                    self.ui.display_generated_meme(output_path)
+                    
+                    # Save the most recent meme for regeneration
+                    self.last_meme = {
+                        "path": output_path,
+                        "type": "band",
+                        "band_name": band_name,
+                        "image_url": image_url
+                    }
+                except ValueError as e:
+                    if "video content" in str(e).lower():
+                        self.ui.display_error(f"Cannot process this content: {str(e)}")
+                    elif "unsupported" in str(e).lower() or "format" in str(e).lower():
+                        self.ui.display_error(f"Image format error: {str(e)}")
+                    else:
+                        self.ui.display_error(f"Error generating meme: {str(e)}")
+                except Exception as e:
+                    self.ui.display_error(f"Error generating meme: {str(e)}")
+            except Exception as e:
+                self.ui.display_error(f"Error generating band meme: {str(e)}")
+        else:
+            # Use manual text input if AI is not available
+            self.ui.display_info("AI text generation not available. Please enter text manually.")
+            top_text, bottom_text = self.ui.get_meme_text(
+                prompt_context=f"Enter text for {band_name} band meme"
+            )
+            
+            try:
                 output_path = self.image_editor.generate_meme(
                     image_path=image_url,
                     top_text=top_text,
                     bottom_text=bottom_text
                 )
-                self.ui.display_generated_meme(output_path)
                 
-                # Ask if user wants to regenerate with different text
-                regenerate = input("\nWould you like to regenerate with different text? (y/n): ").lower() == "y"
-                if regenerate:
-                    self._regenerate_band_meme(image_url, band_name)
-                    
+                self.ui.display_generated_meme(output_path)
+            except ValueError as e:
+                if "video content" in str(e).lower():
+                    self.ui.display_error(f"Cannot process this content: {str(e)}")
+                elif "unsupported" in str(e).lower() or "format" in str(e).lower():
+                    self.ui.display_error(f"Image format error: {str(e)}")
+                else:
+                    self.ui.display_error(f"Error generating meme: {str(e)}")
             except Exception as e:
-                self.ui.display_error(f"Error generating band meme: {str(e)}")
-                # Fall back to manual text entry
-                top_text, bottom_text = self.ui.get_meme_text()
-                self._generate_regular_meme(image_url, top_text, bottom_text)
-        else:
-            # AI not available, use manual text entry
-            self.ui.display_info(f"Enter text for your {band_name}-themed meme:")
-            top_text, bottom_text = self.ui.get_meme_text()
-            self._generate_regular_meme(image_url, top_text, bottom_text)
-    
-    def _regenerate_band_meme(self, image_url: str, band_name: str):
-        """
-        Regenerate a band meme with different AI-generated text.
-        
-        Args:
-            image_url: URL of the meme image
-            band_name: Name of the band for the meme
-        """
-        if not self.ai_generator or not self.ai_generator.is_api_key_configured():
-            self.ui.display_error("AI generation not available. Please configure OpenAI API key.")
-            return
-            
-        try:
-            self.ui.display_info(f"Regenerating {band_name}-themed meme text...")
-            
-            # Download the image first to have it locally for analysis
-            local_image_path = None
-            try:
-                if image_url.startswith(('http://', 'https://')):
-                    import requests
-                    import uuid
-                    import os
-                    
-                    response = requests.get(image_url, timeout=10)
-                    response.raise_for_status()
-                    
-                    temp_dir = "temp_images"
-                    if not os.path.exists(temp_dir):
-                        os.makedirs(temp_dir)
-                        
-                    local_image_path = os.path.join(temp_dir, f"band_meme_source_{uuid.uuid4().hex[:8]}.jpg")
-                    with open(local_image_path, 'wb') as f:
-                        f.write(response.content)
-            except Exception as e:
-                logger.error(f"Error downloading image for regeneration: {str(e)}")
-                local_image_path = None
-            
-            # Generate band-specific meme text, focusing on the image
-            if local_image_path and os.path.exists(local_image_path):
-                top_text, bottom_text = self.ai_generator.generate_band_meme_text(band_name, "")
-            else:
-                top_text, bottom_text = self.ai_generator.generate_band_meme_text(band_name)
-            
-            output_path = self.image_editor.generate_meme(
-                image_path=image_url,
-                top_text=top_text,
-                bottom_text=bottom_text
-            )
-            self.ui.display_generated_meme(output_path)
-        except Exception as e:
-            self.ui.display_error(f"Error regenerating band meme: {str(e)}")
+                self.ui.display_error(f"Error generating meme: {str(e)}")
     
     def _generate_genre_meme(self):
         """Generate a custom genre-themed meme."""
@@ -596,6 +605,12 @@ class MemeGeneratorApp:
                         response = requests.get(image_url, timeout=10)
                         response.raise_for_status()
                         
+                        # Check content type for videos
+                        content_type = response.headers.get('Content-Type', '').lower()
+                        if 'video' in content_type or '.mp4' in image_url.lower() or 'v.redd.it' in image_url.lower():
+                            self.ui.display_error("Video content detected. Video support will be added in a future update.")
+                            return
+                            
                         temp_dir = "temp_images"
                         if not os.path.exists(temp_dir):
                             os.makedirs(temp_dir)
@@ -603,93 +618,74 @@ class MemeGeneratorApp:
                         local_image_path = os.path.join(temp_dir, f"genre_meme_source_{uuid.uuid4().hex[:8]}.jpg")
                         with open(local_image_path, 'wb') as f:
                             f.write(response.content)
-                except Exception as e:
+                except requests.RequestException as e:
+                    if 'video' in str(e).lower():
+                        self.ui.display_error("Video content detected. Video support will be added in a future update.")
+                        return
                     logger.error(f"Error downloading image: {str(e)}")
                     local_image_path = None
                 
-                # Generate meme text with or without image analysis
+                # Generate genre-specific meme text
                 if local_image_path and os.path.exists(local_image_path):
-                    # Use image content for analysis
-                    top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre, local_image_path, "")
+                    # Analyze the image and generate text based on it
+                    top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre, local_image_path)
                 else:
-                    # Fallback to using title as context
-                    top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre, context=title)
+                    # Fallback to using just the genre
+                    top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre)
                 
-                # Generate the actual meme
+                # Generate the meme
+                try:
+                    output_path = self.image_editor.generate_meme(
+                        image_path=image_url,
+                        top_text=top_text,
+                        bottom_text=bottom_text
+                    )
+                    
+                    # Display the generated meme
+                    self.ui.display_generated_meme(output_path)
+                    
+                    # Save the most recent meme for regeneration
+                    self.last_meme = {
+                        "path": output_path,
+                        "type": "genre",
+                        "genre": genre,
+                        "image_url": image_url
+                    }
+                except ValueError as e:
+                    if "video content" in str(e).lower():
+                        self.ui.display_error(f"Cannot process this content: {str(e)}")
+                    elif "unsupported" in str(e).lower() or "format" in str(e).lower():
+                        self.ui.display_error(f"Image format error: {str(e)}")
+                    else:
+                        self.ui.display_error(f"Error generating meme: {str(e)}")
+                except Exception as e:
+                    self.ui.display_error(f"Error generating meme: {str(e)}")
+            except Exception as e:
+                self.ui.display_error(f"Error generating genre meme: {str(e)}")
+        else:
+            # Use manual text input if AI is not available
+            self.ui.display_info("AI text generation not available. Please enter text manually.")
+            top_text, bottom_text = self.ui.get_meme_text(
+                prompt_context=f"Enter text for {genre} genre meme"
+            )
+            
+            try:
                 output_path = self.image_editor.generate_meme(
                     image_path=image_url,
                     top_text=top_text,
                     bottom_text=bottom_text
                 )
-                self.ui.display_genre_meme_result(genre, image_url, output_path)
                 
-                # Ask if user wants to regenerate with different text
-                regenerate = input("\nWould you like to regenerate with different text? (y/n): ").lower() == "y"
-                if regenerate:
-                    self._regenerate_genre_meme(image_url, genre)
-                    
+                self.ui.display_generated_meme(output_path)
+            except ValueError as e:
+                if "video content" in str(e).lower():
+                    self.ui.display_error(f"Cannot process this content: {str(e)}")
+                elif "unsupported" in str(e).lower() or "format" in str(e).lower():
+                    self.ui.display_error(f"Image format error: {str(e)}")
+                else:
+                    self.ui.display_error(f"Error generating meme: {str(e)}")
             except Exception as e:
-                self.ui.display_error(f"Error generating genre meme: {str(e)}")
-                # Fall back to manual text entry
-                top_text, bottom_text = self.ui.get_meme_text()
-                self._generate_regular_meme(image_url, top_text, bottom_text)
-        else:
-            # AI not available, use manual text entry
-            self.ui.display_info(f"Enter text for your {genre}-themed meme:")
-            top_text, bottom_text = self.ui.get_meme_text()
-            self._generate_regular_meme(image_url, top_text, bottom_text)
-    
-    def _regenerate_genre_meme(self, image_url: str, genre: str):
-        """
-        Regenerate a genre meme with different AI-generated text.
-        
-        Args:
-            image_url: URL of the meme image
-            genre: Music genre for the meme
-        """
-        if not self.ai_generator or not self.ai_generator.is_api_key_configured():
-            self.ui.display_error("AI generation not available. Please configure OpenAI API key.")
-            return
-            
-        try:
-            self.ui.display_info(f"Regenerating {genre}-themed meme text...")
-            
-            # Download the image first to have it locally for analysis
-            local_image_path = None
-            try:
-                if image_url.startswith(('http://', 'https://')):
-                    import requests
-                    import uuid
-                    import os
-                    
-                    response = requests.get(image_url, timeout=10)
-                    response.raise_for_status()
-                    
-                    temp_dir = "temp_images"
-                    if not os.path.exists(temp_dir):
-                        os.makedirs(temp_dir)
-                        
-                    local_image_path = os.path.join(temp_dir, f"genre_meme_source_{uuid.uuid4().hex[:8]}.jpg")
-                    with open(local_image_path, 'wb') as f:
-                        f.write(response.content)
-            except Exception as e:
-                logger.error(f"Error downloading image for regeneration: {str(e)}")
-                local_image_path = None
-            
-            # Generate genre-specific meme text, focusing on the image content
-            if local_image_path and os.path.exists(local_image_path):
-                top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre, local_image_path)
-            else:
-                top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre)
-            
-            output_path = self.image_editor.generate_meme(
-                image_path=image_url,
-                top_text=top_text,
-                bottom_text=bottom_text
-            )
-            self.ui.display_genre_meme_result(genre, image_url, output_path)
-        except Exception as e:
-            self.ui.display_error(f"Error regenerating genre meme: {str(e)}")
+                self.ui.display_error(f"Error generating meme: {str(e)}")
     
     def _generate_regular_meme(self, image_url: str, top_text: str, bottom_text: str):
         """
@@ -825,6 +821,166 @@ class MemeGeneratorApp:
         )
         
         self.ui.display_info("OpenAI API key updated successfully!")
+    
+    def _regenerate_band_meme(self, image_url: str, band_name: str):
+        """
+        Regenerate a band meme with different AI-generated text.
+        
+        Args:
+            image_url: URL of the meme image
+            band_name: Name of the band for the meme
+        """
+        if not self.ai_generator or not self.ai_generator.is_api_key_configured():
+            self.ui.display_error("AI generation not available. Please configure OpenAI API key.")
+            return
+            
+        try:
+            self.ui.display_info(f"Regenerating {band_name}-themed meme text...")
+            
+            # Download the image first to have it locally for analysis
+            local_image_path = None
+            try:
+                if image_url.startswith(('http://', 'https://')):
+                    import requests
+                    import uuid
+                    import os
+                    
+                    response = requests.get(image_url, timeout=10)
+                    response.raise_for_status()
+                    
+                    # Check if this is a video URL
+                    content_type = response.headers.get('Content-Type', '').lower()
+                    if 'video' in content_type or '.mp4' in image_url.lower() or 'v.redd.it' in image_url.lower():
+                        self.ui.display_error("Video content detected. Video support will be added in a future update.")
+                        return
+                    
+                    temp_dir = "temp_images"
+                    if not os.path.exists(temp_dir):
+                        os.makedirs(temp_dir)
+                        
+                    local_image_path = os.path.join(temp_dir, f"band_meme_source_{uuid.uuid4().hex[:8]}.jpg")
+                    with open(local_image_path, 'wb') as f:
+                        f.write(response.content)
+            except requests.RequestException as e:
+                if 'video' in str(e).lower():
+                    self.ui.display_error("Video content detected. Video support will be added in a future update.")
+                    return
+                logger.error(f"Error downloading image for regeneration: {str(e)}")
+                local_image_path = None
+            
+            # Generate band-specific meme text, focusing on the image
+            if local_image_path and os.path.exists(local_image_path):
+                top_text, bottom_text = self.ai_generator.generate_band_meme_text(band_name, "")
+            else:
+                top_text, bottom_text = self.ai_generator.generate_band_meme_text(band_name)
+            
+            try:
+                output_path = self.image_editor.generate_meme(
+                    image_path=image_url,
+                    top_text=top_text,
+                    bottom_text=bottom_text
+                )
+                
+                self.ui.display_generated_meme(output_path)
+                
+                # Update the last meme reference
+                self.last_meme = {
+                    "path": output_path,
+                    "type": "band",
+                    "band_name": band_name,
+                    "image_url": image_url
+                }
+            except ValueError as e:
+                if "video content" in str(e).lower():
+                    self.ui.display_error(f"Cannot process this content: {str(e)}")
+                elif "unsupported" in str(e).lower() or "format" in str(e).lower():
+                    self.ui.display_error(f"Image format error: {str(e)}")
+                else:
+                    self.ui.display_error(f"Error generating meme: {str(e)}")
+            except Exception as e:
+                self.ui.display_error(f"Error generating meme: {str(e)}")
+        except Exception as e:
+            self.ui.display_error(f"Error regenerating band meme: {str(e)}")
+
+    def _regenerate_genre_meme(self, image_url: str, genre: str):
+        """
+        Regenerate a genre meme with different AI-generated text.
+        
+        Args:
+            image_url: URL of the meme image
+            genre: Music genre for the meme
+        """
+        if not self.ai_generator or not self.ai_generator.is_api_key_configured():
+            self.ui.display_error("AI generation not available. Please configure OpenAI API key.")
+            return
+            
+        try:
+            self.ui.display_info(f"Regenerating {genre}-themed meme text...")
+            
+            # Download the image first to have it locally for analysis
+            local_image_path = None
+            try:
+                if image_url.startswith(('http://', 'https://')):
+                    import requests
+                    import uuid
+                    import os
+                    
+                    response = requests.get(image_url, timeout=10)
+                    response.raise_for_status()
+                    
+                    # Check if this is a video URL
+                    content_type = response.headers.get('Content-Type', '').lower()
+                    if 'video' in content_type or '.mp4' in image_url.lower() or 'v.redd.it' in image_url.lower():
+                        self.ui.display_error("Video content detected. Video support will be added in a future update.")
+                        return
+                    
+                    temp_dir = "temp_images"
+                    if not os.path.exists(temp_dir):
+                        os.makedirs(temp_dir)
+                        
+                    local_image_path = os.path.join(temp_dir, f"genre_meme_source_{uuid.uuid4().hex[:8]}.jpg")
+                    with open(local_image_path, 'wb') as f:
+                        f.write(response.content)
+            except requests.RequestException as e:
+                if 'video' in str(e).lower():
+                    self.ui.display_error("Video content detected. Video support will be added in a future update.")
+                    return
+                logger.error(f"Error downloading image for regeneration: {str(e)}")
+                local_image_path = None
+            
+            # Generate genre-specific meme text, focusing on the image content
+            if local_image_path and os.path.exists(local_image_path):
+                top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre, local_image_path)
+            else:
+                top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre)
+            
+            try:
+                output_path = self.image_editor.generate_meme(
+                    image_path=image_url,
+                    top_text=top_text,
+                    bottom_text=bottom_text
+                )
+                
+                self.ui.display_generated_meme(output_path)
+                
+                # Update the last meme reference
+                self.last_meme = {
+                    "path": output_path,
+                    "type": "genre",
+                    "genre": genre,
+                    "image_url": image_url
+                }
+            except ValueError as e:
+                if "video content" in str(e).lower():
+                    self.ui.display_error(f"Cannot process this content: {str(e)}")
+                elif "unsupported" in str(e).lower() or "format" in str(e).lower():
+                    self.ui.display_error(f"Image format error: {str(e)}")
+                else:
+                    self.ui.display_error(f"Error generating meme: {str(e)}")
+            except Exception as e:
+                self.ui.display_error(f"Error generating meme: {str(e)}")
+        except Exception as e:
+            self.ui.display_error(f"Error regenerating genre meme: {str(e)}")
     
     def run(self):
         """Run the main application loop."""

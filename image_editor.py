@@ -7,7 +7,7 @@ import logging
 import requests
 from io import BytesIO
 from typing import Optional, Tuple
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
 # Set up basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -64,14 +64,14 @@ class MemeEditor:
         use_local_image: bool = False
     ) -> Optional[str]:
         """
-        Generate a meme by adding text to an image.
+        Generate a meme image with text overlays.
         
         Args:
-            image_path: URL or local path of the image to use as base
-            top_text: Text to add at the top of the image
-            bottom_text: Text to add at the bottom of the image
-            text_color: RGB color tuple for the text
-            outline_color: RGB color tuple for the text outline
+            image_path: URL or local path to the base image
+            top_text: Text to overlay at the top of the image
+            bottom_text: Text to overlay at the bottom of the image
+            text_color: RGB tuple for text color
+            outline_color: RGB tuple for text outline color
             output_filename: Optional custom filename, if None uses a UUID
             use_local_image: If True, image_path is treated as a local file path
             
@@ -83,13 +83,25 @@ class MemeEditor:
             if use_local_image:
                 # Load from local file
                 logger.info(f"Loading local image: {image_path}")
-                img = Image.open(image_path)
+                img = self._load_image_safe(image_path)
             else:
                 # Download from URL
                 logger.info(f"Downloading image: {image_path}")
-                response = requests.get(image_path, timeout=10)
-                response.raise_for_status()
-                img = Image.open(BytesIO(response.content))
+                try:
+                    response = requests.get(image_path, timeout=10)
+                    response.raise_for_status()
+                    
+                    # Check if this is a video URL by examining content type
+                    content_type = response.headers.get('Content-Type', '').lower()
+                    if 'video' in content_type:
+                        raise ValueError("Cannot process video content. Video support will be added in a future update.")
+                    
+                    img = self._load_image_safe(BytesIO(response.content))
+                except requests.RequestException as e:
+                    if 'video' in str(e).lower() or '.mp4' in image_path.lower() or 'v.redd.it' in image_path.lower():
+                        raise ValueError("Cannot process video content. Video support will be added in a future update.")
+                    else:
+                        raise
             
             # Get image dimensions
             width, height = img.size
@@ -309,3 +321,35 @@ class MemeEditor:
             
             # Draw the main text
             draw.text((x_pos, y_pos), text, font=current_font, fill=text_color) 
+
+    def _load_image_safe(self, image_source) -> Image.Image:
+        """
+        Safely load an image from a file path, URL, or bytes buffer,
+        handling different formats and providing clear error messages.
+        
+        Args:
+            image_source: Path, BytesIO, or other readable source
+            
+        Returns:
+            PIL Image object
+            
+        Raises:
+            ValueError: If image cannot be loaded or is an unsupported format
+        """
+        try:
+            img = Image.open(image_source)
+            
+            # Convert to RGB if it's RGBA, to ensure compatibility
+            if img.mode == 'RGBA':
+                background = Image.new('RGB', img.size, (255, 255, 255))
+                background.paste(img, mask=img.split()[3])  # Use alpha channel as mask
+                img = background
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+                
+            return img
+        except UnidentifiedImageError:
+            # Handle cases where PIL can't identify the image format
+            raise ValueError("Unable to process image - unsupported or corrupted format")
+        except Exception as e:
+            raise ValueError(f"Error loading image: {str(e)}") 

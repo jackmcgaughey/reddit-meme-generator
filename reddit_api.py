@@ -413,8 +413,40 @@ class RedditMemeAPI:
             return default_subreddits[:limit]
     
     def _is_image_url(self, url: str) -> bool:
-        """Check if URL points to an image."""
-        return any(url.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif'])
+        """
+        Check if URL points to an image.
+        
+        Args:
+            url: URL to check
+            
+        Returns:
+            bool: True if URL points to an image
+        """
+        # Check common image extensions
+        image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.svg']
+        return any(url.lower().endswith(ext) for ext in image_extensions)
+    
+    def _is_video_url(self, url: str) -> bool:
+        """
+        Check if URL points to a video.
+        
+        Args:
+            url: URL to check
+            
+        Returns:
+            bool: True if URL points to a video
+        """
+        # Common video extensions and patterns
+        video_extensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.gifv']
+        video_patterns = ['v.redd.it', 'youtube.com/watch', 'youtu.be', 'vimeo.com']
+        
+        if any(url.lower().endswith(ext) for ext in video_extensions):
+            return True
+        
+        if any(pattern in url.lower() for pattern in video_patterns):
+            return True
+            
+        return False
     
     def _validate_image_url(self, url: str) -> bool:
         """Validate that the URL is accessible."""
