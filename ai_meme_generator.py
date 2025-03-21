@@ -265,12 +265,13 @@ class AIMemeGenerator:
             logger.error(f"Error generating meme text with OpenAI: {str(e)}")
             raise
     
-    def generate_band_meme_text(self, band_name: str, context: Optional[str] = None) -> Tuple[str, str]:
+    def generate_band_meme_text(self, band_name: str, image_path: str = None, context: Optional[str] = None) -> Tuple[str, str]:
         """
         Generate band-themed meme text using OpenAI.
         
         Args:
             band_name: Name of the band to reference in the meme
+            image_path: Path to the image file or URL (if provided, will analyze the image)
             context: Optional context about the meme or image
             
         Returns:
@@ -282,19 +283,21 @@ class AIMemeGenerator:
         
         # Build the prompt
         system_prompt = f"""
-        You are a asshole meme generator specialized in creating music and band humor like a polically incorrect out of touch 50 year old white man. 
+        You are a music meme generator specialized in creating music and band humor. 
         Your task is to create funny top and bottom text for a meme about the band "{band_name}".
-        These memes need to make sense within the context of the image, also it needs to be funny and make sense.The humor should reference their music style, famous songs, band members, or iconic moments, particularly moments that may be controversial or offensive.
+        These memes need to make sense within the context of the image, also it needs to be funny and make sense.
+        The humor should reference their music style, famous songs, band members, or iconic moments.
         
         VERY IMPORTANT:
-        - Focus ONLY on what can be seen in the image itself, not any titles or descriptions that might have come with it
-        - Create meme text that directly relates to the visual elements in the image
+        - Focus PRIMARILY on what can be seen in the image itself, not any titles or descriptions that might have come with it
+        - Create meme text that directly relates to the visual elements in the image AND connects them to {band_name}
         - The viewer of the meme will ONLY see the image, not any Reddit post titles or descriptions
         - Make specific references to things visible in the image and connect them to the band
         - DO NOT include any emojis or special characters in the text, as they cause rendering issues
         - Stick to plain text only with standard punctuation
         
         Be creative, clever, and make sure the joke would be understood by fans of {band_name}.
+        Your captions should clearly reference BOTH what's in the image AND something about {band_name}.
         
         Respond with JSON in the format:
         {{
@@ -308,14 +311,53 @@ class AIMemeGenerator:
             user_prompt += f" The meme image shows: {context}"
         
         try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                response_format={"type": "json_object"}
-            )
+            # If image path is provided, include the image in the prompt
+            if image_path:
+                try:
+                    # Extract image data
+                    image_data = self._extract_image_data(image_path)
+                    base64_image = base64.b64encode(image_data).decode('utf-8')
+                    
+                    response = self.client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {
+                                "role": "user", 
+                                "content": [
+                                    {"type": "text", "text": user_prompt},
+                                    {
+                                        "type": "image_url",
+                                        "image_url": {
+                                            "url": f"data:image/jpeg;base64,{base64_image}"
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        response_format={"type": "json_object"}
+                    )
+                except Exception as e:
+                    logger.error(f"Error processing image for band meme: {str(e)}")
+                    # Fall back to text-only prompt
+                    response = self.client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        response_format={"type": "json_object"}
+                    )
+            else:
+                # Text-only prompt if no image is provided
+                response = self.client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    response_format={"type": "json_object"}
+                )
             
             # Parse the response
             content = response.choices[0].message.content
@@ -512,7 +554,7 @@ class AIMemeGenerator:
             Path to the generated meme image
         """
         # Generate band-themed text
-        top_text, bottom_text = self.generate_band_meme_text(band_name, context)
+        top_text, bottom_text = self.generate_band_meme_text(band_name, image_path, context)
         
         # Use the image editor to create the meme
         output_path = image_editor.generate_meme(
@@ -616,7 +658,7 @@ class AIMemeGenerator:
             logger.info(f"Downloaded image for band meme to: {temp_image_path}")
             
             # Generate band-specific meme text
-            top_text, bottom_text = self.generate_band_meme_text(band_name, band_context)
+            top_text, bottom_text = self.generate_band_meme_text(band_name, temp_image_path, band_context)
             if not top_text and not bottom_text:
                 logger.error("Failed to generate band meme text")
                 return None

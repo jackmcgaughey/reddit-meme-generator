@@ -590,7 +590,7 @@ class RedditMemeAPI:
             
     def search_band_images(self, band_name: str, limit: int = 10) -> List[Tuple[str, str, int, str, str]]:
         """
-        Search for images related to a specific band across Reddit.
+        Search for images related to a specific band or musician across Reddit.
         
         Args:
             band_name: Name of the band to search for
@@ -604,118 +604,62 @@ class RedditMemeAPI:
             
         results = []
         
-        # Create a list of music-related subreddits to search in
-        music_subreddits = [
-            "Music",
-            "listentothis",
-            "IndieFolk",
-            "Metal",
-            "Rock",
-            "AlternativeRock",
-            "ClassicRock",
-            "HipHopImages",
-            "FolkPunk",
-            "Punk",
-            "Jazz",
-            "Emo",
-            "PostRock",
-            "Blues",
-            "ElectronicMusic",
-            "Rap",
-            "IndieHeads",
-            "country"
-        ]
+        # We'll extend the limit to account for filtered images
+        target_limit = limit * 3
         
-        # Try to find if there's a subreddit dedicated to the band
         try:
-            # Sanitize band name for search
-            sanitized_band_name = band_name.replace(" ", "").lower()
-            
-            # Check if a specific subreddit exists for this band
-            band_subreddit = None
+            # First check if there's a dedicated subreddit for the band
             try:
-                sub = self.reddit.subreddit(sanitized_band_name)
+                band_subreddit = band_name.replace(" ", "")
+                sub = self.reddit.subreddit(band_subreddit)
+                # Verify the subreddit exists by checking if it has a display name
                 if hasattr(sub, 'display_name'):
-                    band_subreddit = sub.display_name
-                    music_subreddits.insert(0, band_subreddit)  # Add it to the front of the list
                     logger.info(f"Found dedicated subreddit for {band_name}: r/{band_subreddit}")
-            except Exception:
-                logger.info(f"No dedicated subreddit found for {band_name}")
-            
-            # First strategy: search in the band's subreddit if it exists
-            if band_subreddit:
-                search_results = self.reddit.subreddit(band_subreddit).search(
-                    "site:i.redd.it OR site:imgur.com", 
-                    sort="hot", 
-                    time_filter="all",
-                    limit=limit * 2
-                )
-                
-                for post in search_results:
-                    if not hasattr(post, 'url'):
-                        continue
-                        
-                    # Check if it's an image URL
-                    url = post.url
-                    if not self._is_image_url(url):
-                        continue
-                        
-                    results.append((
-                        post.title,
-                        url,
-                        post.score,
-                        str(post.subreddit),
-                        post.id
-                    ))
                     
-                    if len(results) >= limit:
-                        break
-            
-            # Second strategy: search all music subreddits
-            if len(results) < limit:
-                subreddit_string = "+".join(music_subreddits)
+                    # Search for image posts in the band's subreddit
+                    for post in sub.search("site:i.redd.it OR site:imgur.com", sort="relevance", limit=target_limit * 2):
+                        if not hasattr(post, 'url'):
+                            continue
+                            
+                        # Check if it's an image URL
+                        url = post.url
+                        if not self._is_image_url(url):
+                            continue
+                        
+                        # Skip likely meme images with text
+                        if self._is_likely_meme_image(post.title, str(post.subreddit)):
+                            continue
+                            
+                        results.append((
+                            post.title,
+                            url,
+                            post.score,
+                            str(post.subreddit),
+                            post.id
+                        ))
+                        
+                        if len(results) >= target_limit:
+                            break
+            except Exception as e:
+                # No dedicated subreddit, this is expected for many bands
+                pass
                 
-                search_results = self.reddit.subreddit(subreddit_string).search(
-                    f"\"{band_name}\" site:i.redd.it OR site:imgur.com", 
+            # Get band images from Music, pics, and other relevant subreddits
+            if len(results) < target_limit:
+                subreddits = ["Music", "pics", "listentothis", "OldSchoolCool", 
+                             "90sMusic", "ClassicRock", "AlternativeRock", "rock", 
+                             "Metal", "HeavyMetal", "Jazz", "RapMusic", "hiphopheads",
+                             "country", "ClassicalMusic", "indieheads", "PopMusic"]
+                
+                # Join the subreddits for a multi-subreddit search
+                subreddit_str = "+".join(subreddits)
+                
+                for post in self.reddit.subreddit(subreddit_str).search(
+                    f"{band_name} site:i.redd.it OR site:imgur.com", 
                     sort="relevance", 
                     time_filter="all",
-                    limit=limit * 3
-                )
-                
-                for post in search_results:
-                    if not hasattr(post, 'url'):
-                        continue
-                        
-                    # Check if it's an image URL
-                    url = post.url
-                    if not self._is_image_url(url):
-                        continue
-                    
-                    # Check for duplicates
-                    if any(result[4] == post.id for result in results):
-                        continue
-                        
-                    results.append((
-                        post.title,
-                        url,
-                        post.score,
-                        str(post.subreddit),
-                        post.id
-                    ))
-                    
-                    if len(results) >= limit:
-                        break
-            
-            # Third strategy: broader search across all of Reddit
-            if len(results) < limit:
-                search_results = self.reddit.subreddit("all").search(
-                    f"\"{band_name}\" site:i.redd.it OR site:imgur.com", 
-                    sort="relevance", 
-                    time_filter="all",
-                    limit=(limit - len(results)) * 3
-                )
-                
-                for post in search_results:
+                    limit=target_limit * 2
+                ):
                     if not hasattr(post, 'url'):
                         continue
                         
@@ -727,6 +671,10 @@ class RedditMemeAPI:
                     # Check for duplicates
                     if any(result[4] == post.id for result in results):
                         continue
+                    
+                    # Skip likely meme images with text
+                    if self._is_likely_meme_image(post.title, str(post.subreddit)):
+                        continue
                         
                     results.append((
                         post.title,
@@ -736,26 +684,89 @@ class RedditMemeAPI:
                         post.id
                     ))
                     
-                    if len(results) >= limit:
+                    if len(results) >= target_limit:
                         break
             
-            # If we still don't have enough images, fall back to guitar images
-            if len(results) < limit and len(results) == 0:
-                logger.info(f"No band-specific images found for {band_name}, falling back to guitar images.")
-                guitar_results = self.search_guitar_memes(limit=limit)
-                results.extend(guitar_results[:limit - len(results)])
-            
+            # If needed, search across all of Reddit
+            if len(results) < target_limit:
+                for post in self.reddit.subreddit("all").search(
+                    f"{band_name} site:i.redd.it OR site:imgur.com", 
+                    sort="relevance", 
+                    time_filter="all",
+                    limit=(target_limit - len(results)) * 3
+                ):
+                    if not hasattr(post, 'url'):
+                        continue
+                        
+                    # Check if it's an image URL
+                    url = post.url
+                    if not self._is_image_url(url):
+                        continue
+                        
+                    # Check for duplicates
+                    if any(result[4] == post.id for result in results):
+                        continue
+                    
+                    # Skip likely meme images with text
+                    if self._is_likely_meme_image(post.title, str(post.subreddit)):
+                        continue
+                        
+                    results.append((
+                        post.title,
+                        url,
+                        post.score,
+                        str(post.subreddit),
+                        post.id
+                    ))
+                    
+                    if len(results) >= target_limit:
+                        break
+                        
             logger.info(f"Found {len(results)} images for band '{band_name}'")
             return results
             
         except Exception as e:
             logger.error(f"Error searching for band images: {str(e)}")
-            # Fall back to guitar images if we encounter an error
+            # Fall back to general music/meme images if we encounter an error
             try:
-                return self.search_guitar_memes(limit=limit)
+                return self.search_memes("music", limit=limit)
             except:
                 return []
     
+    def _is_likely_meme_image(self, title: str, subreddit: str) -> bool:
+        """
+        Check if an image is likely a meme based on title and subreddit.
+        
+        Args:
+            title: The title of the Reddit post
+            subreddit: The subreddit name
+            
+        Returns:
+            True if the image is likely a meme, False otherwise
+        """
+        # List of subreddits known for memes
+        meme_subreddits = [
+            "memes", "dankmemes", "meme", "adviceanimals", "comedycemetery", 
+            "funny", "prequelmemes", "historymemes", "memeconomy", "politicalcompassmemes",
+            "wholesomememes", "okbuddyretard", "comedyheaven", "terriblefacebookmemes"
+        ]
+        
+        # List of keywords that often appear in meme titles
+        meme_keywords = [
+            "meme", "caption", "when you", "me when", "my face when", "tfw", "mfw", 
+            "expectation vs reality", "see the joke", "lol", "lmao", "be like"
+        ]
+        
+        # Check if the subreddit is a known meme subreddit
+        if any(meme_sub.lower() in subreddit.lower() for meme_sub in meme_subreddits):
+            return True
+            
+        # Check if the title contains meme keywords
+        if any(keyword.lower() in title.lower() for keyword in meme_keywords):
+            return True
+            
+        return False
+
     def search_genre_images(self, genre: str, limit: int = 10) -> List[Tuple[str, str, int, str, str]]:
         """
         Search for images related to a specific music genre across Reddit.
@@ -811,19 +822,22 @@ class RedditMemeAPI:
         # Create a list of subreddits to search in
         genre_subreddits = search_config["subreddits"] + ["Music", "pics", "OldSchoolCool", "ImagesOfThe20thCentury"]
         
+        # We'll extend the limit to account for filtered images
+        target_limit = limit * 3
+        
         try:
             # First strategy: search in genre-specific subreddits
             subreddit_string = "+".join(genre_subreddits)
             
             for term in search_config["search_terms"]:
-                if len(results) >= limit:
+                if len(results) >= target_limit:
                     break
                     
                 search_results = self.reddit.subreddit(subreddit_string).search(
                     f"{term} {genre} site:i.redd.it OR site:imgur.com", 
                     sort="relevance", 
                     time_filter="all",
-                    limit=limit * 2
+                    limit=target_limit * 2
                 )
                 
                 for post in search_results:
@@ -838,6 +852,10 @@ class RedditMemeAPI:
                     # Check for duplicates
                     if any(result[4] == post.id for result in results):
                         continue
+                    
+                    # Skip likely meme images with text
+                    if self._is_likely_meme_image(post.title, str(post.subreddit)):
+                        continue
                         
                     results.append((
                         post.title,
@@ -847,52 +865,58 @@ class RedditMemeAPI:
                         post.id
                     ))
                     
-                    if len(results) >= limit:
+                    if len(results) >= target_limit:
                         break
             
             # Second strategy: search for associated artists/bands
-            if len(results) < limit and "bands" in search_config:
+            if len(results) < target_limit and "bands" in search_config:
                 for band in search_config.get("bands", []):
-                    if len(results) >= limit:
+                    if len(results) >= target_limit:
                         break
                         
-                    band_results = self.search_band_images(band, limit=(limit - len(results)))
+                    band_results = self.search_band_images(band, limit=(target_limit - len(results)))
                     
-                    # Filter out duplicates
+                    # Filter out duplicates and likely meme images
                     for result in band_results:
                         if any(r[4] == result[4] for r in results):
                             continue
-                            
-                        results.append(result)
                         
-                        if len(results) >= limit:
-                            break
-            
-            # Same for artists if present
-            if len(results) < limit and "artists" in search_config:
-                for artist in search_config.get("artists", []):
-                    if len(results) >= limit:
-                        break
-                        
-                    artist_results = self.search_band_images(artist, limit=(limit - len(results)))
-                    
-                    # Filter out duplicates
-                    for result in artist_results:
-                        if any(r[4] == result[4] for r in results):
+                        if self._is_likely_meme_image(result[0], result[3]):
                             continue
                             
                         results.append(result)
                         
-                        if len(results) >= limit:
+                        if len(results) >= target_limit:
+                            break
+            
+            # Same for artists if present
+            if len(results) < target_limit and "artists" in search_config:
+                for artist in search_config.get("artists", []):
+                    if len(results) >= target_limit:
+                        break
+                        
+                    artist_results = self.search_band_images(artist, limit=(target_limit - len(results)))
+                    
+                    # Filter out duplicates and likely meme images
+                    for result in artist_results:
+                        if any(r[4] == result[4] for r in results):
+                            continue
+                        
+                        if self._is_likely_meme_image(result[0], result[3]):
+                            continue
+                            
+                        results.append(result)
+                        
+                        if len(results) >= target_limit:
                             break
             
             # Third strategy: broader search across all of Reddit
-            if len(results) < limit:
+            if len(results) < target_limit:
                 search_results = self.reddit.subreddit("all").search(
                     f"{genre} music site:i.redd.it OR site:imgur.com", 
                     sort="relevance", 
                     time_filter="all",
-                    limit=(limit - len(results)) * 3
+                    limit=(target_limit - len(results)) * 3
                 )
                 
                 for post in search_results:
@@ -907,6 +931,10 @@ class RedditMemeAPI:
                     # Check for duplicates
                     if any(result[4] == post.id for result in results):
                         continue
+                    
+                    # Skip likely meme images with text
+                    if self._is_likely_meme_image(post.title, str(post.subreddit)):
+                        continue
                         
                     results.append((
                         post.title,
@@ -916,17 +944,17 @@ class RedditMemeAPI:
                         post.id
                     ))
                     
-                    if len(results) >= limit:
+                    if len(results) >= target_limit:
                         break
             
             # If we still don't have enough images, fall back to general music images
-            if len(results) < limit:
+            if len(results) < target_limit:
                 logger.info(f"Found only {len(results)} images for genre '{genre}', searching for more general music images.")
                 search_results = self.reddit.subreddit("all").search(
                     "music meme site:i.redd.it OR site:imgur.com",
                     sort="relevance", 
                     time_filter="all",
-                    limit=(limit - len(results)) * 2
+                    limit=(target_limit - len(results)) * 2
                 )
                 
                 for post in search_results:
@@ -941,6 +969,10 @@ class RedditMemeAPI:
                     # Check for duplicates
                     if any(result[4] == post.id for result in results):
                         continue
+                    
+                    # Skip likely meme images with text
+                    if self._is_likely_meme_image(post.title, str(post.subreddit)):
+                        continue
                         
                     results.append((
                         post.title,
@@ -950,7 +982,7 @@ class RedditMemeAPI:
                         post.id
                     ))
                     
-                    if len(results) >= limit:
+                    if len(results) >= target_limit:
                         break
             
             logger.info(f"Found {len(results)} images for genre '{genre}'")

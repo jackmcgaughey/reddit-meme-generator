@@ -4,6 +4,8 @@ Main routes for the Shreddit Meme Generator web application.
 import os
 import uuid
 import logging
+import requests
+import random
 from flask import (
     Blueprint, flash, g, redirect, render_template, request,
     url_for, current_app, send_from_directory, jsonify
@@ -67,16 +69,23 @@ def search_band_images():
             return redirect(url_for('main.guitar_band_memes'))
         
         try:
-            # Search for band images
-            images = reddit_api.search_band_images(band_name, limit=10)
+            # Search for band images - get 30 to have enough after filtering
+            images = reddit_api.search_band_images(band_name, limit=30)
             if not images:
                 # Fallback to guitar memes if no band images found
                 flash(f'No images found for band: {band_name}. Showing guitar memes instead.')
-                images = reddit_api.get_guitar_memes(limit=10)
+                images = reddit_api.get_guitar_memes(limit=20)
+            
+            # Randomize the results to provide variety each time
+            random.shuffle(images)
+            
+            # Limit to 20 images
+            images = images[:20]
             
             # Store image URLs in session
             image_list = [{'url': img[1], 'title': img[0]} for img in images]
             
+            logger.info(f"Found {len(image_list)} images for band '{band_name}'")
             return render_template('band_image_results.html', images=image_list, band_name=band_name)
         
         except Exception as e:
@@ -96,14 +105,38 @@ def generate_band_meme():
             return redirect(url_for('main.guitar_band_memes'))
         
         try:
-            # Download the image
+            # Generate a unique ID for this meme
             unique_id = str(uuid.uuid4())
             temp_dir = current_app.config['UPLOAD_FOLDER']
             image_path = os.path.join(temp_dir, f"{unique_id}.jpg")
-            reddit_api.download_image(image_url, image_path)
             
-            # Generate meme text
-            top_text, bottom_text = ai_generator.generate_band_meme_text(band_name=band_name)
+            # Handle different image sources (URL vs local upload)
+            if image_url.startswith('http'):
+                # It's a real URL - download it
+                reddit_api.download_image(image_url, image_path)
+            elif image_url.startswith('/upload/'):
+                # It's a local upload - copy the file
+                upload_filename = os.path.basename(image_url)
+                source_path = os.path.join(current_app.config['UPLOAD_FOLDER'], upload_filename)
+                
+                # Check if the file exists
+                if not os.path.exists(source_path):
+                    logger.error(f"Uploaded file not found: {source_path}")
+                    flash('Uploaded image not found')
+                    return redirect(url_for('main.guitar_band_memes'))
+                
+                # Copy the file instead of downloading
+                import shutil
+                shutil.copy2(source_path, image_path)
+                logger.info(f"Copied uploaded file from {source_path} to {image_path}")
+            else:
+                # Invalid URL format
+                logger.error(f"Invalid image URL format: {image_url}")
+                flash('Invalid image source')
+                return redirect(url_for('main.guitar_band_memes'))
+            
+            # Generate meme text - pass the image path to analyze the content
+            top_text, bottom_text = ai_generator.generate_band_meme_text(band_name=band_name, image_path=image_path)
             
             # Create the meme
             output_path = os.path.join(current_app.config['GENERATED_FOLDER'], f"{unique_id}_meme.jpg")
@@ -150,16 +183,23 @@ def search_genre_images():
             return redirect(url_for('main.genre_memes'))
         
         try:
-            # Search for genre images
-            images = reddit_api.search_genre_images(genre, limit=10)
+            # Search for genre images - get 30 to have enough after filtering
+            images = reddit_api.search_genre_images(genre, limit=30)
             if not images:
                 # Fallback to guitar memes if no genre images found
                 flash(f'No images found for genre: {genre}. Showing guitar memes instead.')
-                images = reddit_api.get_guitar_memes(limit=10)
+                images = reddit_api.get_guitar_memes(limit=20)
+            
+            # Randomize the results to provide variety each time
+            random.shuffle(images)
+            
+            # Limit to 20 images
+            images = images[:20]
             
             # Store image URLs in session
             image_list = [{'url': img[1], 'title': img[0]} for img in images]
             
+            logger.info(f"Found {len(image_list)} images for genre '{genre}'")
             return render_template('genre_image_results.html', images=image_list, genre=genre)
         
         except Exception as e:
@@ -179,14 +219,38 @@ def generate_genre_meme():
             return redirect(url_for('main.genre_memes'))
         
         try:
-            # Download the image
+            # Generate a unique ID for this meme
             unique_id = str(uuid.uuid4())
             temp_dir = current_app.config['UPLOAD_FOLDER']
             image_path = os.path.join(temp_dir, f"{unique_id}.jpg")
-            reddit_api.download_image(image_url, image_path)
             
-            # Generate meme text
-            top_text, bottom_text = ai_generator.generate_genre_meme_text(genre=genre)
+            # Handle different image sources (URL vs local upload)
+            if image_url.startswith('http'):
+                # It's a real URL - download it
+                reddit_api.download_image(image_url, image_path)
+            elif image_url.startswith('/upload/'):
+                # It's a local upload - copy the file
+                upload_filename = os.path.basename(image_url)
+                source_path = os.path.join(current_app.config['UPLOAD_FOLDER'], upload_filename)
+                
+                # Check if the file exists
+                if not os.path.exists(source_path):
+                    logger.error(f"Uploaded file not found: {source_path}")
+                    flash('Uploaded image not found')
+                    return redirect(url_for('main.genre_memes'))
+                
+                # Copy the file instead of downloading
+                import shutil
+                shutil.copy2(source_path, image_path)
+                logger.info(f"Copied uploaded file from {source_path} to {image_path}")
+            else:
+                # Invalid URL format
+                logger.error(f"Invalid image URL format: {image_url}")
+                flash('Invalid image source')
+                return redirect(url_for('main.genre_memes'))
+            
+            # Generate meme text - pass the image path to analyze the content
+            top_text, bottom_text = ai_generator.generate_genre_meme_text(genre=genre, image_path=image_path)
             
             # Create the meme
             output_path = os.path.join(current_app.config['GENERATED_FOLDER'], f"{unique_id}_meme.jpg")
@@ -234,11 +298,11 @@ def regenerate_meme():
             
             # Generate new meme text
             if source_type == 'band':
-                top_text, bottom_text = ai_generator.generate_band_meme_text(band_name=source_name)
+                top_text, bottom_text = ai_generator.generate_band_meme_text(band_name=source_name, image_path=original_image_path)
             elif source_type == 'genre':
-                top_text, bottom_text = ai_generator.generate_genre_meme_text(genre=source_name)
+                top_text, bottom_text = ai_generator.generate_genre_meme_text(genre=source_name, image_path=original_image_path)
             else:
-                top_text, bottom_text = ai_generator.generate_meme_text(context="a meme about music")
+                top_text, bottom_text = ai_generator.generate_meme_text(image_path=original_image_path, context="a meme about music")
             
             # Create the meme with new text
             output_path = os.path.join(current_app.config['GENERATED_FOLDER'], f"{unique_id}_meme.jpg")

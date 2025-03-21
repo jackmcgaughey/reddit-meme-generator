@@ -25,6 +25,11 @@ A simple yet powerful tool to discover, generate, and customize memes from Reddi
   - Automatic format conversion for compatibility
   - Video content detection with clear user notification
   - Graceful handling of unsupported media formats
+- **Advanced Image Selection**:
+  - Smart filtering to avoid images that already have text
+  - Search results include 20 images instead of just 10
+  - Randomized results for more variety with each search
+  - Higher quality selection criteria for better meme creation
 
 ## Requirements
 
@@ -120,6 +125,19 @@ The application offers specialized meme generation for different music genres:
 
 Each genre has its own AI personality that crafts humor specifically tailored to the culture and stereotypes of that music scene.
 
+### Image Search Improvements
+
+The application now includes enhanced image searching capabilities:
+
+- **Smart Filtering**: Automatically skips images that likely already contain text by:
+  - Analyzing the image source (subreddit)
+  - Checking post titles for common meme phrases
+  - Identifying posts from known meme subreddits
+- **More Results**: Each search returns 20 images instead of just 10
+- **Randomization**: Results are shuffled to ensure you get different images each time
+- **Higher Quality**: Behind the scenes, searches fetch 30 images and filter out lower quality options
+- **Consistent Experience**: Both genre and band searches use the same improvements
+
 ### Text Rendering Features
 
 - **Smart Text Sizing**: Text automatically scales to fit the image width
@@ -146,7 +164,16 @@ This project is open source under the MIT license.
 
 This tool is for educational and personal use. Please respect copyright and Reddit's terms of service when using and sharing memes.
 
-## Future Improvements
+## Recent Updates
+
+### v1.2.0 (March 2025)
+- Added intelligent image filtering to avoid using images that already have text
+- Increased search results from 10 to 20 images for more selection
+- Implemented randomization for more varied results on repeated searches
+- Enhanced image quality through better filtering of results
+- Improved caption generation by analyzing both image content and selected genre/band
+
+### Future Improvements
 
 - Add advanced text customization options (colors, fonts, positioning)
 - Support for meme templates from more sources
