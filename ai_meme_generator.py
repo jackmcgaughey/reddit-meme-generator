@@ -171,6 +171,14 @@ class AIMemeGenerator:
         system_prompt = """
         You are a witty meme generator. Your task is to create humorous top and bottom text for a meme image.
         Be creative, clever, and funny. The text should be concise and fit the meme format.
+        
+        VERY IMPORTANT:
+        - Focus ONLY on what can be seen in the image itself, not any titles or descriptions that might have come with it
+        - Create meme text that directly relates to the visual elements in the image
+        - The viewer of the meme will ONLY see the image, not any Reddit post titles or descriptions
+        - Make specific references to things visible in the image
+        - Keep it punchy and memorable - meme text should be concise
+        
         Respond with JSON in the format:
         {
             "top_text": "The top text for the meme",
@@ -180,7 +188,7 @@ class AIMemeGenerator:
         
         user_prompt = "Generate funny top and bottom text for this meme image."
         if context:
-            user_prompt += f" Context: {context}"
+            user_prompt += f" This is what the image shows: {context}"
             
         try:
             response = self.client.chat.completions.create(
@@ -244,6 +252,13 @@ class AIMemeGenerator:
         You are a asshole meme generator specialized in creating music and band humor like a polically incorrect out of touch 50 year old white man. 
         Your task is to create funny top and bottom text for a meme about the band "{band_name}".
         These memes need to make sense within the context of the image, also it needs to be funny and make sense.The humor should reference their music style, famous songs, band members, or iconic moments, particularly moments that may be controversial or offensive.
+        
+        VERY IMPORTANT:
+        - Focus ONLY on what can be seen in the image itself, not any titles or descriptions that might have come with it
+        - Create meme text that directly relates to the visual elements in the image
+        - The viewer of the meme will ONLY see the image, not any Reddit post titles or descriptions
+        - Make specific references to things visible in the image and connect them to the band
+        
         Be creative, clever, and make sure the joke would be understood by fans of {band_name}.
         
         Respond with JSON in the format:
@@ -356,11 +371,18 @@ class AIMemeGenerator:
         The humor should be specific to the culture, fans, and stereotypes of {genre} music, making
         references that true fans would appreciate.
         
+        VERY IMPORTANT:
+        - Focus ONLY on what can be seen in the image itself, not any titles or descriptions that might have come with it
+        - Create meme text that directly relates to the visual elements in the image
+        - The viewer of the meme will ONLY see the image, not any Reddit post titles or descriptions
+        - Make specific references to things visible in the image and connect them to {genre} music culture
+        
         Make sure the meme text:
         1. Is concise and punchy (typical meme format)
         2. Contains humor that specifically resonates with {genre} fans
         3. References genre-specific tropes, artists, or cultural moments
         4. Has the specific voice and style of a {genre} fan or critic
+        5. Directly relates to what is visible in the image
         
         Respond with JSON in the format:
         {{
@@ -374,7 +396,7 @@ class AIMemeGenerator:
             user_prompt += f" Additional context: {context}"
         
         # If image path is provided, include the image in the prompt
-        if image_path and os.path.exists(image_path):
+        if image_path:
             try:
                 # Extract image data
                 image_data = self._extract_image_data(image_path)

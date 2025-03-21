@@ -421,7 +421,40 @@ class MemeGeneratorApp:
             # Use AI to generate band-themed meme text
             try:
                 self.ui.display_info(f"Generating {band_name}-themed meme text with AI...")
-                top_text, bottom_text = self.ai_generator.generate_band_meme_text(band_name, title)
+                
+                # Download the image first to have it locally for analysis
+                local_image_path = None
+                try:
+                    if image_url.startswith(('http://', 'https://')):
+                        import requests
+                        import uuid
+                        import os
+                        
+                        response = requests.get(image_url, timeout=10)
+                        response.raise_for_status()
+                        
+                        temp_dir = "temp_images"
+                        if not os.path.exists(temp_dir):
+                            os.makedirs(temp_dir)
+                            
+                        local_image_path = os.path.join(temp_dir, f"band_meme_source_{uuid.uuid4().hex[:8]}.jpg")
+                        with open(local_image_path, 'wb') as f:
+                            f.write(response.content)
+                        
+                        # Use the local image path for generation if download successful
+                        if local_image_path and os.path.exists(local_image_path):
+                            # Generate directly from the image
+                            top_text, bottom_text = self.ai_generator.generate_band_meme_text(band_name, "")
+                        else:
+                            # Fallback to using title as context
+                            top_text, bottom_text = self.ai_generator.generate_band_meme_text(band_name, title)
+                    else:
+                        # Local file, use it directly
+                        top_text, bottom_text = self.ai_generator.generate_band_meme_text(band_name, "")
+                except Exception as e:
+                    logger.error(f"Error downloading image for analysis: {str(e)}")
+                    # Fallback to using title
+                    top_text, bottom_text = self.ai_generator.generate_band_meme_text(band_name, title)
                 
                 # Generate the actual meme
                 output_path = self.image_editor.generate_meme(
@@ -461,7 +494,34 @@ class MemeGeneratorApp:
             
         try:
             self.ui.display_info(f"Regenerating {band_name}-themed meme text...")
-            top_text, bottom_text = self.ai_generator.generate_band_meme_text(band_name)
+            
+            # Download the image first to have it locally for analysis
+            local_image_path = None
+            try:
+                if image_url.startswith(('http://', 'https://')):
+                    import requests
+                    import uuid
+                    import os
+                    
+                    response = requests.get(image_url, timeout=10)
+                    response.raise_for_status()
+                    
+                    temp_dir = "temp_images"
+                    if not os.path.exists(temp_dir):
+                        os.makedirs(temp_dir)
+                        
+                    local_image_path = os.path.join(temp_dir, f"band_meme_source_{uuid.uuid4().hex[:8]}.jpg")
+                    with open(local_image_path, 'wb') as f:
+                        f.write(response.content)
+            except Exception as e:
+                logger.error(f"Error downloading image for regeneration: {str(e)}")
+                local_image_path = None
+            
+            # Generate band-specific meme text, focusing on the image
+            if local_image_path and os.path.exists(local_image_path):
+                top_text, bottom_text = self.ai_generator.generate_band_meme_text(band_name, "")
+            else:
+                top_text, bottom_text = self.ai_generator.generate_band_meme_text(band_name)
             
             output_path = self.image_editor.generate_meme(
                 image_path=image_url,
@@ -548,9 +608,11 @@ class MemeGeneratorApp:
                     local_image_path = None
                 
                 # Generate meme text with or without image analysis
-                if local_image_path:
-                    top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre, local_image_path, title)
+                if local_image_path and os.path.exists(local_image_path):
+                    # Use image content for analysis
+                    top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre, local_image_path, "")
                 else:
+                    # Fallback to using title as context
                     top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre, context=title)
                 
                 # Generate the actual meme
@@ -591,7 +653,34 @@ class MemeGeneratorApp:
             
         try:
             self.ui.display_info(f"Regenerating {genre}-themed meme text...")
-            top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre)
+            
+            # Download the image first to have it locally for analysis
+            local_image_path = None
+            try:
+                if image_url.startswith(('http://', 'https://')):
+                    import requests
+                    import uuid
+                    import os
+                    
+                    response = requests.get(image_url, timeout=10)
+                    response.raise_for_status()
+                    
+                    temp_dir = "temp_images"
+                    if not os.path.exists(temp_dir):
+                        os.makedirs(temp_dir)
+                        
+                    local_image_path = os.path.join(temp_dir, f"genre_meme_source_{uuid.uuid4().hex[:8]}.jpg")
+                    with open(local_image_path, 'wb') as f:
+                        f.write(response.content)
+            except Exception as e:
+                logger.error(f"Error downloading image for regeneration: {str(e)}")
+                local_image_path = None
+            
+            # Generate genre-specific meme text, focusing on the image content
+            if local_image_path and os.path.exists(local_image_path):
+                top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre, local_image_path)
+            else:
+                top_text, bottom_text = self.ai_generator.generate_genre_meme_text(genre)
             
             output_path = self.image_editor.generate_meme(
                 image_path=image_url,
