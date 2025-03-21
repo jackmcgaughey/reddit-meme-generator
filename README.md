@@ -17,9 +17,10 @@ A simple yet powerful tool to discover, generate, and customize memes from Reddi
   - Generate genre-specific memes with unique personality for each music genre
 - **Music Genre Meme Generator**:
   - Create memes with genre-specific humor and cultural references
-  - Supported genres include 60s rock, jazz, 90s rock, rave, and 2010s pop
+  - Supported genres include Rock, Metal, Jazz, Hip Hop, and many more
   - Each genre has a unique AI personality and style
-  - Search for genre-related images automatically
+  - Enhanced music-focused image search for relevant results
+  - Smart filtering and fallback options to ensure quality music-related images
 - **Enhanced Media Support**:
   - Support for multiple image formats (JPG, JPEG, PNG, GIF, BMP, WebP, TIFF, SVG)
   - Automatic format conversion for compatibility
@@ -137,6 +138,11 @@ The application now includes enhanced image searching capabilities:
 - **Randomization**: Results are shuffled to ensure you get different images each time
 - **Higher Quality**: Behind the scenes, searches fetch 30 images and filter out lower quality options
 - **Consistent Experience**: Both genre and band searches use the same improvements
+- **Music-Focused Search**: Enhanced algorithms ensure genre searches return music-related images:
+  - Specific music subreddit targeting
+  - Genre-tailored search terms that always include music references
+  - Multi-stage search with fallback options to ensure relevant results
+  - Intelligent query construction with music-specific keywords like "concert," "band," "performance"
 
 ### Text Rendering Features
 
@@ -165,6 +171,13 @@ This project is open source under the MIT license.
 This tool is for educational and personal use. Please respect copyright and Reddit's terms of service when using and sharing memes.
 
 ## Recent Updates
+
+### v1.3.0 (March 2025)
+- Enhanced music genre search with more accurate music-related image results
+- Added more specific genre options with proper music context
+- Implemented smarter search algorithms with multiple fallback strategies
+- Improved search queries to focus on concerts, performances, and music-related content
+- Added specialized configurations for over 10 music genres
 
 ### v1.2.0 (March 2025)
 - Added intelligent image filtering to avoid using images that already have text

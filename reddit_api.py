@@ -5,6 +5,7 @@ import praw
 import logging
 import requests
 from typing import List, Tuple, Optional
+import random
 
 # Set up basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -786,41 +787,94 @@ class RedditMemeAPI:
         # Define genre-specific search parameters
         genre_search_config = {
             "60s rock": {
-                "subreddits": ["ClassicRock", "OldSchoolCool", "60sMusic", "classic_rock", "psychedelicrock", "rock"],
-                "search_terms": ["60s", "classic rock", "woodstock", "vintage", "psychedelic"],
+                "subreddits": ["ClassicRock", "OldSchoolCool", "60sMusic", "classic_rock", "psychedelicrock", "rock", "Music"],
+                "search_terms": ["60s music", "classic rock", "woodstock", "vintage rock", "psychedelic rock", "60s band"],
                 "bands": ["Beatles", "Rolling Stones", "Jimi Hendrix", "Grateful Dead", "The Doors"]
             },
             "jazz": {
-                "subreddits": ["Jazz", "JazzPiano", "JazzGuitar", "LearnJazz", "classicjazz", "JazzPhotos", "jazzmen"],
-                "search_terms": ["jazz", "bebop", "saxophone", "trumpet", "improvisation", "club"],
+                "subreddits": ["Jazz", "JazzPiano", "JazzGuitar", "LearnJazz", "classicjazz", "JazzPhotos", "jazzmen", "Music"],
+                "search_terms": ["jazz music", "bebop", "saxophone", "trumpet", "jazz performance", "jazz club"],
                 "artists": ["Miles Davis", "John Coltrane", "Thelonious Monk", "Charlie Parker", "Duke Ellington"]
             },
             "90s rock": {
-                "subreddits": ["grunge", "90sMusic", "90sAlternative", "90sRock", "Nirvana", "PearlJam", "Soundgarden"],
-                "search_terms": ["grunge", "alternative", "flannel", "90s rock", "MTV", "generation x"],
+                "subreddits": ["grunge", "90sMusic", "90sAlternative", "90sRock", "Nirvana", "PearlJam", "Soundgarden", "Music"],
+                "search_terms": ["grunge music", "alternative rock", "90s band", "90s rock music", "90s concert", "flannel shirt"],
                 "bands": ["Nirvana", "Pearl Jam", "Soundgarden", "Alice in Chains", "Red Hot Chili Peppers"]
             },
             "rave": {
-                "subreddits": ["aves", "EDM", "electronicmusic", "DJs", "ravelight", "festivals", "ravecouture"],
-                "search_terms": ["rave", "plur", "electronic", "festival", "lights", "edm", "dance"],
+                "subreddits": ["aves", "EDM", "electronicmusic", "DJs", "ravelight", "festivals", "ravecouture", "Music"],
+                "search_terms": ["rave music", "plur", "electronic music", "festival", "edm concert", "dj performance"],
                 "concepts": ["glowsticks", "kandi", "dj", "lightshow", "warehouse party"]
             },
             "2010s pop": {
-                "subreddits": ["popheads", "TaylorSwift", "ariheads", "lanadelrey", "JustinBieber", "kpop"],
-                "search_terms": ["pop", "streaming", "chart topper", "stan", "instagram aesthetic"],
+                "subreddits": ["popheads", "TaylorSwift", "ariheads", "lanadelrey", "JustinBieber", "kpop", "Music"],
+                "search_terms": ["pop music", "pop concert", "chart topper", "pop performance", "music video", "pop singer"],
                 "artists": ["Taylor Swift", "Ariana Grande", "Justin Bieber", "Billie Eilish", "BTS"]
+            },
+            "rock music": {
+                "subreddits": ["rock", "ClassicRock", "AlternativeRock", "Metal", "hardrock", "Music"],
+                "search_terms": ["rock music", "rock band", "rock concert", "guitar", "drummer", "rock show"],
+                "bands": ["Led Zeppelin", "Queen", "AC/DC", "Foo Fighters", "Radiohead"]
+            },
+            "heavy metal": {
+                "subreddits": ["Metal", "Metallica", "heavymetal", "thrashmetal", "deathmetal", "Music"],
+                "search_terms": ["metal band", "heavy metal", "headbang", "metal concert", "metal show", "metal music"],
+                "bands": ["Metallica", "Iron Maiden", "Black Sabbath", "Slayer", "Megadeth"]
+            },
+            "pop music": {
+                "subreddits": ["popheads", "pop", "MusicCharts", "Billboard", "Music"],
+                "search_terms": ["pop music", "pop concert", "pop performance", "pop star", "pop singer", "studio"],
+                "artists": ["Madonna", "Michael Jackson", "Katy Perry", "Lady Gaga", "Bruno Mars"]
+            },
+            "hip hop music": {
+                "subreddits": ["hiphopheads", "rap", "hiphop101", "trapmuzik", "Music"],
+                "search_terms": ["hip hop", "rap concert", "rap music", "rapper", "hip hop show", "mc"],
+                "artists": ["Kendrick Lamar", "Jay-Z", "Kanye West", "Eminem", "Drake"]
+            },
+            "alternative rock": {
+                "subreddits": ["AlternativeRock", "indie", "indieheads", "radiohead", "Music"],
+                "search_terms": ["alternative rock", "indie concert", "alternative band", "rock music", "indie rock show"],
+                "bands": ["Radiohead", "The Killers", "Arctic Monkeys", "The Strokes", "Coldplay"]
+            },
+            "punk rock": {
+                "subreddits": ["punk", "punkrock", "Hardcore", "greenday", "Music"],
+                "search_terms": ["punk rock", "punk concert", "punk band", "punk show", "mosh pit", "punk music"],
+                "bands": ["Ramones", "Green Day", "The Clash", "Sex Pistols", "Blink-182"]
+            },
+            "funk music": {
+                "subreddits": ["funk", "funk_music", "Music"],
+                "search_terms": ["funk music", "funk band", "funk concert", "bassist", "funk groove", "funk guitarist"],
+                "bands": ["Parliament", "James Brown", "Earth Wind & Fire", "Sly and the Family Stone", "Prince"]
+            },
+            "grunge music": {
+                "subreddits": ["grunge", "Nirvana", "PearlJam", "Soundgarden", "Music"],
+                "search_terms": ["grunge music", "grunge concert", "seattle music", "grunge scene", "90s rock"],
+                "bands": ["Nirvana", "Pearl Jam", "Soundgarden", "Alice in Chains", "Stone Temple Pilots"]
             }
         }
+
+        # Clean up the genre string to match our configuration
+        cleaned_genre = genre.lower().strip()
+        # Remove "music" suffix if present for matching against config
+        search_key = cleaned_genre.replace(" music", "").strip()
         
         # Get the search config for the selected genre (default to general music if not found)
-        search_config = genre_search_config.get(genre.lower(), {
-            "subreddits": ["Music", "pics", "listentothis", "ImagesOfThe2010s"],
-            "search_terms": [genre, "music", "concert", "festival", "band"],
+        default_config = {
+            "subreddits": ["Music", "listentothis", "pics", "concertporn", "musicpics", "bandpics"],
+            "search_terms": [cleaned_genre, "band", "concert", "performance", "music", "stage", "musician"],
             "names": []
-        })
+        }
+        
+        search_config = genre_search_config.get(search_key, default_config)
+        
+        # Always ensure these music subreddits are included
+        music_subreddits = ["Music", "listentothis", "musicpics", "MusicPhotography", "concertporn", "LiveMusic"]
+        for sub in music_subreddits:
+            if sub not in search_config["subreddits"]:
+                search_config["subreddits"].append(sub)
         
         # Create a list of subreddits to search in
-        genre_subreddits = search_config["subreddits"] + ["Music", "pics", "OldSchoolCool", "ImagesOfThe20thCentury"]
+        genre_subreddits = search_config["subreddits"]
         
         # We'll extend the limit to account for filtered images
         target_limit = limit * 3
@@ -829,12 +883,27 @@ class RedditMemeAPI:
             # First strategy: search in genre-specific subreddits
             subreddit_string = "+".join(genre_subreddits)
             
+            # Ensure all search terms include 'music' to get relevant results
+            search_terms = []
             for term in search_config["search_terms"]:
+                if "music" not in term.lower():
+                    search_terms.append(f"{term} music")
+                else:
+                    search_terms.append(term)
+                    
+            # Always add the original genre term with 'music'
+            if cleaned_genre not in search_terms:
+                search_terms.append(cleaned_genre)
+            
+            for term in search_terms:
                 if len(results) >= target_limit:
                     break
                     
+                # Construct search query to focus on music-related content
+                search_query = f"{term} {cleaned_genre} (concert OR band OR musician OR performance OR stage) site:i.redd.it OR site:imgur.com"
+                
                 search_results = self.reddit.subreddit(subreddit_string).search(
-                    f"{term} {genre} site:i.redd.it OR site:imgur.com", 
+                    search_query, 
                     sort="relevance", 
                     time_filter="all",
                     limit=target_limit * 2
@@ -913,7 +982,7 @@ class RedditMemeAPI:
             # Third strategy: broader search across all of Reddit
             if len(results) < target_limit:
                 search_results = self.reddit.subreddit("all").search(
-                    f"{genre} music site:i.redd.it OR site:imgur.com", 
+                    f"{cleaned_genre} music (concert OR band OR musician OR performance) site:i.redd.it OR site:imgur.com", 
                     sort="relevance", 
                     time_filter="all",
                     limit=(target_limit - len(results)) * 3
@@ -949,9 +1018,9 @@ class RedditMemeAPI:
             
             # If we still don't have enough images, fall back to general music images
             if len(results) < target_limit:
-                logger.info(f"Found only {len(results)} images for genre '{genre}', searching for more general music images.")
+                logger.info(f"Found only {len(results)} images for genre '{cleaned_genre}', searching for more general music images.")
                 search_results = self.reddit.subreddit("all").search(
-                    "music meme site:i.redd.it OR site:imgur.com",
+                    "music concert band performance live site:i.redd.it OR site:imgur.com",
                     sort="relevance", 
                     time_filter="all",
                     limit=(target_limit - len(results)) * 2
@@ -985,13 +1054,16 @@ class RedditMemeAPI:
                     if len(results) >= target_limit:
                         break
             
-            logger.info(f"Found {len(results)} images for genre '{genre}'")
+            # Randomize the results for variety
+            random.shuffle(results)
+            
+            logger.info(f"Found {len(results)} images for genre '{cleaned_genre}'")
             return results
             
         except Exception as e:
             logger.error(f"Error searching for genre images: {str(e)}")
             # Fall back to general music/meme images if we encounter an error
             try:
-                return self.search_memes("music", limit=limit)
+                return self.search_memes("music concert band", limit=limit)
             except:
                 return [] 

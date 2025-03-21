@@ -164,12 +164,13 @@ def generate_band_meme():
 @bp.route('/genre-memes')
 def genre_memes():
     """Render the genre memes page."""
-    # Common music genres
+    # Music genres with more specific names to ensure music-related results
     music_genres = [
-        "Rock", "Metal", "Pop", "Hip Hop", "Jazz", "Blues", 
-        "Country", "Electronic", "Classical", "Reggae", "Punk", 
-        "R&B", "Soul", "Folk", "Indie", "Techno", "Disco",
-        "Alternative", "Funk", "Grunge"
+        "Rock Music", "Heavy Metal", "Pop Music", "Hip Hop Music", "Jazz Music", 
+        "Blues Music", "Country Music", "Electronic Music", "Classical Music", 
+        "Reggae Music", "Punk Rock", "R&B Music", "Soul Music", "Folk Music", 
+        "Indie Rock", "Techno Music", "Disco Music", "Alternative Rock", 
+        "Funk Music", "Grunge Music"
     ]
     return render_template('genre_memes.html', genres=music_genres)
 
@@ -183,12 +184,23 @@ def search_genre_images():
             return redirect(url_for('main.genre_memes'))
         
         try:
+            # Ensure genre includes "music" if it doesn't already
+            search_genre = genre if "music" in genre.lower() else f"{genre} Music"
+            
             # Search for genre images - get 30 to have enough after filtering
-            images = reddit_api.search_genre_images(genre, limit=30)
-            if not images:
-                # Fallback to guitar memes if no genre images found
-                flash(f'No images found for genre: {genre}. Showing guitar memes instead.')
-                images = reddit_api.get_guitar_memes(limit=20)
+            images = reddit_api.search_genre_images(search_genre, limit=30)
+            if not images or len(images) < 5:
+                # Try a different search strategy if no results
+                logger.info(f"First search returned insufficient results for '{search_genre}', trying secondary search")
+                secondary_images = reddit_api.search_memes(f"{search_genre} band concert", limit=30)
+                if secondary_images:
+                    images.extend(secondary_images)
+                
+                # If still no results, fall back to generic music images
+                if not images or len(images) < 5:
+                    flash(f'Limited images found for genre: {genre}. Including some general music images.')
+                    fallback_images = reddit_api.search_memes("music concert band", limit=20)
+                    images.extend(fallback_images)
             
             # Randomize the results to provide variety each time
             random.shuffle(images)
@@ -199,7 +211,7 @@ def search_genre_images():
             # Store image URLs in session
             image_list = [{'url': img[1], 'title': img[0]} for img in images]
             
-            logger.info(f"Found {len(image_list)} images for genre '{genre}'")
+            logger.info(f"Found {len(image_list)} images for genre '{search_genre}'")
             return render_template('genre_image_results.html', images=image_list, genre=genre)
         
         except Exception as e:
