@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+
+{% block title %}Browse Meme Templates{% endblock %}
+
+{% block head %}
+<style>
+/* Template card styling */
+.template-grid {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.template-card {
+    transition: transform 0.3s;
+}
+
+.template-card:hover {
+    transform: translateY(-5px);
+}
+
+.card-img-top {
+    max-height: 200px;
+    object-fit: contain;
+    padding: 10px;
+    background-color: #f8f9fa;
+}
+
+.template-metadata {
+    max-height: 150px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+/* Search and sort controls */
+#search {
+    padding-right: 30px;
+}
+
+.search-container {
+    position: relative;
+}
+
+.search-icon {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+}
+</style>
+
+<script>
+// Wait for the document to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Get references to search and sort inputs
+    const searchInput = document.getElementById('search');
+    const sortSelect = document.getElementById('sort');
+    const templateCards = document.querySelectorAll('.template-card');
+    
+    // Function to filter and sort templates
+    function updateTemplateDisplay() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const sortBy = sortSelect.value;
+        
+        // Convert NodeList to Array for sorting
+        const cardsArray = Array.from(templateCards);
+        
+        // Sort the cards based on selected criteria
+        cardsArray.sort((a, b) => {
+            if (sortBy === 'name') {
+                const nameA = a.querySelector('.card-title').textContent.toLowerCase();
+                const nameB = b.querySelector('.card-title').textContent.toLowerCase();
+                return nameA.localeCompare(nameB);
+            } else if (sortBy === 'popularity') {
+                const popA = parseInt(a.dataset.popularity) || 9999;
+                const popB = parseInt(b.dataset.popularity) || 9999;
+                return popA - popB;
+            }
+            return 0;
+        });
+        
+        // Reset the display and apply filtering and sorting
+        cardsArray.forEach(card => {
+            const cardTitle = card.querySelector('.card-title').textContent.toLowerCase();
+            const container = card.parentNode;
+            
+            // Filter by search term
+            if (searchTerm && !cardTitle.includes(searchTerm)) {
+                card.style.display = 'none';
+            } else {
+                card.style.display = '';
+            }
+            
+            // Re-append to parent to apply sorting
+            container.appendChild(card);
+        });
+    }
+    
+    // Add event listeners
+    searchInput.addEventListener('input', updateTemplateDisplay);
+    sortSelect.addEventListener('change', updateTemplateDisplay);
+    
+    // Initial sort
+    updateTemplateDisplay();
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Browse Meme Templates</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Template Management</h5>
+        </div>
+        <div class="card-body">
+            <p>Make sure all templates have proper descriptions for best results:</p>
+            <a href="{{ url_for('main.check_template_metadata') }}" class="btn btn-primary">Check Template Metadata</a>
+            <a href="{{ url_for('main.check_template_metadata', process='true', limit=10) }}" class="btn btn-success">Process 10 Missing Templates</a>
+        </div>
+    </div>
+    
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="search">Search Templates:</label>
+                <input type="text" class="form-control" id="search" placeholder="Enter template name...">
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="sort">Sort By:</label>
+                <select class="form-control" id="sort">
+                    <option value="name">Name (A-Z)</option>
+                    <option value="popularity">Popularity</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row my-4">
+        <div class="col-md-12">
+            <h1 class="text-center retro-text">Browse Meme Templates</h1>
+            <p class="text-center mb-4">Select a template to create a customized {{ context }} meme</p>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-8 offset-md-2">
+            <div class="card bg-dark text-light">
+                <div class="card-header">
+                    <h5 class="mb-0">Filter Templates</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="{{ url_for('main.browse_meme_templates') }}" class="row g-3">
+                        <input type="hidden" name="context" value="{{ context }}">
+                        <input type="hidden" name="source_name" value="{{ source_name }}">
+                        
+                        <div class="col-md-8">
+                            <label for="category" class="form-label">Category</label>
+                            <select class="form-select bg-dark text-light" id="category" name="category">
+                                <option value="all" {% if category == 'all' %}selected{% endif %}>All Templates</option>
+                                <option value="music" {% if category == 'music' %}selected{% endif %}>Music-related</option>
+                                <option value="reaction" {% if category == 'reaction' %}selected{% endif %}>Reaction</option>
+                                <option value="comparison" {% if category == 'comparison' %}selected{% endif %}>Comparison</option>
+                                <option value="statement" {% if category == 'statement' %}selected{% endif %}>Statement</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-filter"></i> Filter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row template-grid">
+        {% for template in templates %}
+        <div class="col-md-4 mb-4 template-card" data-name="{{ template.name }}" data-popularity="{{ template.rank if template.rank else 9999 }}">
+            <div class="card h-100">
+                <img src="{{ template.url }}" class="card-img-top template-image" alt="{{ template.name }}">
+                <div class="card-body">
+                    <h5 class="card-title">{{ template.name }}</h5>
+                    
+                    {% set metadata = get_template_metadata(template.id) %}
+                    {% if metadata and metadata.get('description') and metadata.get('description') != "A popular meme template." %}
+                    <div class="template-metadata">
+                        <p class="card-text"><strong>Description:</strong> {{ metadata.description }}</p>
+                        <p class="card-text"><small><strong>Format:</strong> {{ metadata.format }}</small></p>
+                        <p class="card-text"><small><strong>Tone:</strong> {{ metadata.tone }}</small></p>
+                    </div>
+                    {% else %}
+                    <p class="card-text text-muted">No detailed description available. <a href="{{ url_for('main.check_template_metadata', process='true', template_id=template.id) }}">Generate one?</a></p>
+                    {% endif %}
+                    
+                    {% if context in ['band', 'genre'] %}
+                    <a href="{{ url_for('main.' ~ ('select_band_for_template' if context == 'band' else 'select_genre_for_template'), template_id=template.id, template_url=template.url, template_name=template.name, box_count=template.box_count) }}" class="btn btn-primary mt-2">Generate {{ context.capitalize() }} Meme</a>
+                    {% else %}
+                    <a href="{{ url_for('main.generate_template_meme', template_id=template.id, template_url=template.url, template_name=template.name, box_count=template.box_count, context=context, source_name=source_name) }}" class="btn btn-primary mt-2">Generate Meme</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .template-thumbnail {
+        max-height: 180px;
+        object-fit: contain;
+    }
+    
+    .template-img-container {
+        height: 180px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+{% endblock %} 

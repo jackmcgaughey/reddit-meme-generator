@@ -485,25 +485,40 @@ def generate_template_meme():
     template_metadata = imgflip_generator.get_template_metadata(template_id)
     
     # Check if template metadata exists or needs to be generated
-    if not template_metadata.get('analyzed', False):
+    if not template_metadata.get('analyzed', False) or not template_metadata.get('description') or template_metadata.get('description') == "A popular meme template.":
         if use_ai:
-            # Generate template analysis using AI
-            prompt = f"""
-Analyze this meme template (ID: {template_id}, Box Count: {box_count})
+            # Generate template analysis using AI with improved prompt
+            enhanced_prompt = f"""
+Analyze this meme template thoroughly (ID: {template_id}, Box Count: {box_count})
 URL: {template_url}
 
-Please provide the following information about this meme template:
-1. Full Name: The complete/proper name of this meme template
-2. Description: A brief description of what the image shows and what the meme typically represents
-3. Format: How the template is typically used (what goes in each text area)
-4. Example: A typical example of text used in this meme (music-related)
-5. Tone: The emotional tone or context this meme is typically used in
+I need detailed information about this specific meme template to generate appropriate content:
 
+1. Full Name: The complete/proper name of this meme template
+
+2. Description: A detailed description of:
+   - What the image actually shows (people, objects, scene)
+   - The typical meaning or use of this meme in internet culture
+   - What makes this template recognizable or unique
+
+3. Format: Explain precisely how this template with {box_count} text boxes is used:
+   - What specific content goes in each text area 
+   - The relationship between the text areas
+   - The specific format or pattern that makes this meme template work
+   - If each text area represents different speakers, perspectives, or concepts
+
+4. Example: Provide 1-2 examples of text that would typically be used in this meme, showing exactly what would go in each text area
+
+5. Tone: The emotional tone or context this meme is typically used in (humorous, ironic, sarcastic, etc.)
+
+Your analysis must accurately reflect this specific template's actual usage in meme culture. 
 Format your response as a JSON structure with these keys: name, description, format, example, tone
 """
-            template_metadata_json, analysis_prompt = ai_generator.analyze_meme_template(prompt)
+            template_metadata_json, analysis_prompt = ai_generator.analyze_meme_template(enhanced_prompt)
             try:
                 template_metadata = json.loads(template_metadata_json)
+                # Store the analysis prompt with the metadata
+                template_metadata['analysis_prompt'] = analysis_prompt
             except json.JSONDecodeError:
                 logger.error("Failed to parse template metadata JSON")
                 template_metadata = {
@@ -511,9 +526,12 @@ Format your response as a JSON structure with these keys: name, description, for
                     "description": "A popular meme template.",
                     "format": f"Template with {box_count} text fields.",
                     "example": "Example text for this meme format.",
-                    "tone": "Humorous, internet meme culture."
+                    "tone": "Humorous, internet meme culture.",
+                    "analysis_prompt": enhanced_prompt
                 }
             imgflip_generator.save_template_metadata(template_id, template_metadata)
+            # Also save to the API's cache for consistency
+            imgflip_api.save_custom_metadata(template_id, template_metadata)
     
     # Generate meme text based on context and template
     meme_texts = []
@@ -881,4 +899,290 @@ def submit_genre_for_template():
                               template_name=template_name,
                               box_count=box_count,
                               context=context,
-                              source_name=genre)) 
+                              source_name=genre))
+
+@bp.route('/check-template-metadata', methods=['GET'])
+def check_template_metadata():
+    """Check all templates for missing metadata and generate it if needed."""
+    # In production, this should be protected with authentication
+    # For now, anyone can trigger metadata checks
+    
+    # Parameters
+    process_limit = request.args.get('limit', '10')
+    process_all = request.args.get('all', 'false').lower() == 'true'
+    force_refresh = request.args.get('force', 'false').lower() == 'true'
+    specific_template_id = request.args.get('template_id')
+    
+    # If processing a specific template
+    if specific_template_id and 'process' in request.args:
+        # Initialize AI-generator for text creation
+        ai_generator = AIMemeGenerator()
+        
+        # Check for OpenAI API key
+        openai_api_key = current_app.config.get('OPENAI_API_KEY')
+        if not openai_api_key:
+            return render_template('admin_result.html', 
+                title="API Key Missing", 
+                content="OpenAI API key is not configured. Please set it in your environment variables.")
+        
+        # Get template info
+        all_templates = imgflip_api.get_templates()
+        template = next((t for t in all_templates if t.get('id') == specific_template_id), None)
+        
+        if not template:
+            return render_template('admin_result.html', 
+                title="Template Not Found", 
+                content=f"Template with ID {specific_template_id} not found.")
+        
+        # Generate metadata for this specific template
+        template_id = template.get('id')
+        template_url = template.get('url')
+        template_name = template.get('name')
+        box_count = template.get('box_count', 2)
+        
+        # Generate template analysis using AI with improved prompt
+        enhanced_prompt = f"""
+Analyze this meme template thoroughly (ID: {template_id}, Box Count: {box_count})
+URL: {template_url}
+
+I need detailed information about this specific meme template to generate appropriate content:
+
+1. Full Name: The complete/proper name of this meme template
+
+2. Description: A detailed description of:
+   - What the image actually shows (people, objects, scene)
+   - The typical meaning or use of this meme in internet culture
+   - What makes this template recognizable or unique
+
+3. Format: Explain precisely how this template with {box_count} text boxes is used:
+   - What specific content goes in each text area 
+   - The relationship between the text areas
+   - The specific format or pattern that makes this meme template work
+   - If each text area represents different speakers, perspectives, or concepts
+
+4. Example: Provide 1-2 examples of text that would typically be used in this meme, showing exactly what would go in each text area
+
+5. Tone: The emotional tone or context this meme is typically used in (humorous, ironic, sarcastic, etc.)
+
+Your analysis must accurately reflect this specific template's actual usage in meme culture. 
+Format your response as a JSON structure with these keys: name, description, format, example, tone
+"""
+        
+        try:
+            template_metadata_json, analysis_prompt = ai_generator.analyze_meme_template(enhanced_prompt)
+            try:
+                template_metadata = json.loads(template_metadata_json)
+                # Store the analysis prompt with the metadata
+                template_metadata['analysis_prompt'] = analysis_prompt
+                template_metadata['analyzed'] = True
+                imgflip_api.save_custom_metadata(template_id, template_metadata)
+                
+                content = f"""
+<h4>Successfully processed template: {template_name}</h4>
+<div class="row mb-4">
+    <div class="col-md-4">
+        <img src="{template_url}" class="img-fluid rounded" alt="{template_name}">
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <pre class="bg-light p-3">{json.dumps(template_metadata, indent=2)}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+<a href="{url_for('main.browse_meme_templates')}" class="btn btn-primary">Return to Templates</a>
+"""
+                return render_template('admin_result.html', 
+                    title=f"Template Metadata for {template_name}", 
+                    content=content)
+                
+            except json.JSONDecodeError:
+                logger.error(f"Failed to parse template metadata JSON for {template_id}")
+                return render_template('admin_result.html', 
+                    title="JSON Parse Error", 
+                    content=f"Failed to parse JSON response for template: {template_name}")
+                
+        except Exception as e:
+            logger.error(f"Error analyzing template {template_id}: {str(e)}")
+            return render_template('admin_result.html', 
+                title="Processing Error", 
+                content=f"Error processing template {template_name}: {str(e)}")
+    
+    # Get all templates for the batch processing mode
+    all_templates = imgflip_api.get_templates()
+    
+    # Check which templates need metadata
+    templates_needing_metadata = []
+    templates_with_metadata = []
+    
+    for template in all_templates:
+        template_id = template.get('id')
+        metadata = imgflip_api.get_template_metadata(template_id)
+        
+        # Determine if metadata needs to be generated/refreshed
+        needs_metadata = (
+            force_refresh or 
+            not metadata.get('analyzed', False) or 
+            not metadata.get('description') or 
+            metadata.get('description') == "A popular meme template."
+        )
+        
+        if needs_metadata:
+            templates_needing_metadata.append(template)
+        else:
+            templates_with_metadata.append(template)
+    
+    # Process templates if requested for batch mode
+    processed_templates = []
+    errors = []
+    
+    if 'process' in request.args and not specific_template_id:
+        # Initialize AI-generator for text creation
+        ai_generator = AIMemeGenerator()
+        
+        # Check for OpenAI API key
+        openai_api_key = current_app.config.get('OPENAI_API_KEY')
+        if not openai_api_key:
+            return render_template('admin_result.html', 
+                title="API Key Missing", 
+                content="OpenAI API key is not configured. Please set it in your environment variables.")
+        
+        # Determine how many templates to process
+        if process_all:
+            templates_to_process = templates_needing_metadata
+        else:
+            try:
+                limit = int(process_limit)
+            except ValueError:
+                limit = 10
+            templates_to_process = templates_needing_metadata[:limit]
+        
+        for template in templates_to_process:
+            template_id = template.get('id')
+            template_url = template.get('url')
+            box_count = template.get('box_count', 2)
+            
+            # Generate template analysis using AI with improved prompt
+            enhanced_prompt = f"""
+Analyze this meme template thoroughly (ID: {template_id}, Box Count: {box_count})
+URL: {template_url}
+
+I need detailed information about this specific meme template to generate appropriate content:
+
+1. Full Name: The complete/proper name of this meme template
+
+2. Description: A detailed description of:
+   - What the image actually shows (people, objects, scene)
+   - The typical meaning or use of this meme in internet culture
+   - What makes this template recognizable or unique
+
+3. Format: Explain precisely how this template with {box_count} text boxes is used:
+   - What specific content goes in each text area 
+   - The relationship between the text areas
+   - The specific format or pattern that makes this meme template work
+   - If each text area represents different speakers, perspectives, or concepts
+
+4. Example: Provide 1-2 examples of text that would typically be used in this meme, showing exactly what would go in each text area
+
+5. Tone: The emotional tone or context this meme is typically used in (humorous, ironic, sarcastic, etc.)
+
+Your analysis must accurately reflect this specific template's actual usage in meme culture. 
+Format your response as a JSON structure with these keys: name, description, format, example, tone
+"""
+            try:
+                template_metadata_json, analysis_prompt = ai_generator.analyze_meme_template(enhanced_prompt)
+                try:
+                    template_metadata = json.loads(template_metadata_json)
+                    # Store the analysis prompt with the metadata
+                    template_metadata['analysis_prompt'] = analysis_prompt
+                    template_metadata['analyzed'] = True
+                    imgflip_api.save_custom_metadata(template_id, template_metadata)
+                    processed_templates.append({
+                        'id': template_id,
+                        'name': template.get('name', 'Unknown'),
+                        'success': True,
+                        'metadata': template_metadata
+                    })
+                except json.JSONDecodeError:
+                    logger.error(f"Failed to parse template metadata JSON for {template_id}")
+                    errors.append(f"Failed to parse JSON for {template_id}: {template.get('name', 'Unknown')}")
+            except Exception as e:
+                logger.error(f"Error analyzing template {template_id}: {str(e)}")
+                errors.append(f"Error processing {template_id}: {template.get('name', 'Unknown')} - {str(e)}")
+    
+    # Format stats and results for display
+    stats = {
+        'total_templates': len(all_templates),
+        'templates_with_metadata': len(templates_with_metadata),
+        'templates_needing_metadata': len(templates_needing_metadata),
+        'templates_processed': len(processed_templates),
+        'errors': len(errors)
+    }
+    
+    # Generate result content
+    content = f"""
+<h4>Template Metadata Stats:</h4>
+<ul>
+    <li>Total Templates: {stats['total_templates']}</li>
+    <li>Templates with Metadata: {stats['templates_with_metadata']}</li>
+    <li>Templates Needing Metadata: {stats['templates_needing_metadata']}</li>
+</ul>
+
+<h4>Actions:</h4>
+<div class="mb-3">
+    <a href="{url_for('main.check_template_metadata', process='true', limit=10)}" class="btn btn-primary">Process 10 Templates</a>
+    <a href="{url_for('main.check_template_metadata', process='true', limit=25)}" class="btn btn-primary">Process 25 Templates</a>
+    <a href="{url_for('main.check_template_metadata', process='true', all='true')}" class="btn btn-warning">Process All Templates</a>
+    <a href="{url_for('main.check_template_metadata', process='true', force='true', limit=10)}" class="btn btn-danger">Force Refresh 10 Templates</a>
+</div>
+"""
+    
+    # Add processing results if any
+    if processed_templates:
+        content += f"""
+<h4>Processed Templates ({stats['templates_processed']}):</h4>
+<div class="accordion" id="processedTemplatesAccordion">
+"""
+        for i, template in enumerate(processed_templates):
+            content += f"""
+<div class="accordion-item">
+    <h2 class="accordion-header" id="heading{i}">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{i}" aria-expanded="false" aria-controls="collapse{i}">
+            {template['name']} (ID: {template['id']})
+        </button>
+    </h2>
+    <div id="collapse{i}" class="accordion-collapse collapse" aria-labelledby="heading{i}" data-bs-parent="#processedTemplatesAccordion">
+        <div class="accordion-body">
+            <pre class="bg-light p-3">{json.dumps(template['metadata'], indent=2)}</pre>
+        </div>
+    </div>
+</div>
+"""
+        content += "</div>"
+    
+    # Add errors if any
+    if errors:
+        content += f"""
+<h4>Errors ({stats['errors']}):</h4>
+<ul class="list-group">
+"""
+        for error in errors:
+            content += f'<li class="list-group-item list-group-item-danger">{error}</li>'
+        content += "</ul>"
+    
+    return render_template('admin_result.html', 
+        title="Template Metadata Check", 
+        content=content)
+
+# Add template context processor for accessing template metadata in templates
+@bp.app_context_processor
+def inject_template_metadata():
+    """
+    Make the template metadata function available to Jinja templates.
+    """
+    def get_template_metadata(template_id):
+        """Get metadata for a template by ID"""
+        return imgflip_api.get_template_metadata(template_id)
+    
+    return dict(get_template_metadata=get_template_metadata) 
