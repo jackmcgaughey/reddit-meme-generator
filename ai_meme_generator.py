@@ -12,7 +12,7 @@ import base64
 import requests
 import re
 from io import BytesIO
-from typing import Tuple, Optional, Dict, Any
+from typing import Tuple, Optional, Dict, Any, List, Union
 from PIL import Image
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -53,6 +53,10 @@ class AIMemeGenerator:
         except Exception as e:
             logger.error(f"Failed to initialize OpenAI client: {e}")
             self.client = None
+        
+        # Store the last used prompts for debugging/display
+        self.last_system_prompt = ""
+        self.last_user_prompt = ""
     
     def _extract_image_data(self, image_path: str) -> bytes:
         """
@@ -177,97 +181,384 @@ class AIMemeGenerator:
         # Replace emojis with empty string
         return emoji_pattern.sub(r'', text)
     
-    def generate_meme_text(self, image_path: str, context: Optional[str] = None) -> Tuple[str, str]:
+    def generate_meme_text(self, context: str = "music", template_image_path: str = None, 
+                           template_context: Dict[str, Any] = None, box_count: int = 2) -> Tuple[List[str], Dict[str, str]]:
         """
-        Generate meme text (top and bottom) for an image using OpenAI API.
+        Generate text blocks for a meme template using OpenAI.
         
         Args:
-            image_path: Path to the image file or URL
-            context: Optional context about the meme or image
+            context: The context to generate text for ("music", "band", "genre", etc.)
+            template_image_path: URL or path to the template image
+            template_context: Dictionary containing template metadata
+            box_count: Number of text boxes to generate
             
         Returns:
-            Tuple containing top and bottom text for the meme
+            Tuple of (list of text strings, dict with prompts used)
         """
         if not self.client:
             logger.error("OpenAI client not initialized. Cannot generate text.")
             raise ValueError("OpenAI API key is not configured")
             
-        # Extract image data or download it if it's a URL
-        image_data = self._extract_image_data(image_path)
+        # Prepare image data if available
+        image_content = None
+        if template_image_path:
+            image_data = self._extract_image_data(template_image_path)
+            if image_data:
+                base64_image = base64.b64encode(image_data).decode('utf-8')
+                image_content = {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
         
-        # Prepare the payload for OpenAI API
-        base64_image = base64.b64encode(image_data).decode('utf-8')
+        # Build context information from template metadata
+        context_info = ""
+        if template_context:
+            if "name" in template_context:
+                context_info += f"Meme name: {template_context['name']}\n"
+            if "description" in template_context:
+                context_info += f"Description: {template_context['description']}\n"
+            if "format" in template_context:
+                context_info += f"Format: {template_context['format']}\n"
+            if "tone" in template_context:
+                context_info += f"Tone: {template_context['tone']}\n"
         
-        # Build the prompt
-        system_prompt = """
-        You are a witty meme generator. Your task is to create humorous top and bottom text for a meme image.
-        Be creative, clever, and funny. The text should be concise and fit the meme format.
+        # Build the system prompt
+        system_prompt = f"""
+        You are a witty meme text generator specialized in {context} humor.
         
-        VERY IMPORTANT:
-        - Focus ONLY on what can be seen in the image itself, not any titles or descriptions that might have come with it
-        - Create meme text that directly relates to the visual elements in the image
-        - The viewer of the meme will ONLY see the image, not any Reddit post titles or descriptions
-        - Make specific references to things visible in the image
-        - Keep it punchy and memorable - meme text should be concise
-        - DO NOT include any emojis or special characters in the text, as they cause rendering issues
-        - Stick to plain text only with standard punctuation
+        Your task is to generate text for a meme with {box_count} text areas.
+        The text should be concise, punchy, and funny, following meme conventions.
         
-        Respond with JSON in the format:
-        {
-            "top_text": "The top text for the meme",
-            "bottom_text": "The bottom text for the meme"
-        }
+        Template information:
+        {context_info}
+        
+        Important guidelines:
+        - Create text appropriate for each of the {box_count} text areas in the template
+        - Make sure the text reflects the proper usage of this specific meme format
+        - Include {context}-related humor and references where appropriate
+        - Each text block should be concise (typically 5-15 words max)
+        - DO NOT include any emojis or special characters
+        - DO NOT number or label the text blocks
+        
+        Respond with a JSON array containing exactly {box_count} text strings, one for each text area.
         """
         
-        user_prompt = "Generate funny top and bottom text for this meme image."
-        if context:
-            user_prompt += f" This is what the image shows: {context}"
-            
+        # Store the system prompt for later reference
+        self.last_system_prompt = system_prompt
+        
+        user_prompt = f"Generate {box_count} text blocks for this meme template related to {context}."
+        # Store the user prompt for later reference
+        self.last_user_prompt = user_prompt
+        
         try:
+            # Prepare the messages
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            user_content = [{"type": "text", "text": user_prompt}]
+            
+            # Add image if available
+            if image_content:
+                user_content.append(image_content)
+                
+            messages.append({"role": "user", "content": user_content})
+            
+            # Make the API call
             response = self.client.chat.completions.create(
                 model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {
-                        "role": "user", 
-                        "content": [
-                            {"type": "text", "text": user_prompt},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{base64_image}"
-                                }
-                            }
-                        ]
-                    }
-                ],
+                messages=messages,
                 response_format={"type": "json_object"}
             )
             
             # Parse the response
             content = response.choices[0].message.content
-            logger.debug(f"OpenAI response: {content}")
+            logger.debug(f"OpenAI response for template texts: {content}")
             
+            # Extract the text blocks
             try:
                 result = json.loads(content)
-                top_text = self._remove_emojis(result.get("top_text", ""))
-                bottom_text = self._remove_emojis(result.get("bottom_text", ""))
-                return top_text, bottom_text
-            except json.JSONDecodeError:
-                logger.error(f"Failed to parse JSON from OpenAI response: {content}")
-                # Fallback to simple text extraction
+                
+                # Handle different response formats
+                if isinstance(result, list):
+                    text_blocks = result
+                elif "texts" in result:
+                    text_blocks = result["texts"]
+                elif "text_blocks" in result:
+                    text_blocks = result["text_blocks"]
+                else:
+                    # Try to find any array in the response
+                    for key, value in result.items():
+                        if isinstance(value, list) and len(value) == box_count:
+                            text_blocks = value
+                            break
+                    else:
+                        # Create default text blocks if none found
+                        text_blocks = [f"Text block {i+1}" for i in range(box_count)]
+                
+                # Ensure we have exactly the right number of blocks
+                while len(text_blocks) < box_count:
+                    text_blocks.append(f"Text area {len(text_blocks)+1}")
+                
+                # Clean up the text blocks (remove emojis and limit to first box_count elements)
+                cleaned_blocks = [self._remove_emojis(block) for block in text_blocks[:box_count]]
+                
+                logger.info(f"Generated {len(cleaned_blocks)} text blocks for template")
+                
+                # Return both the text blocks and the prompts used
+                return cleaned_blocks, {
+                    "system_prompt": self.last_system_prompt,
+                    "user_prompt": self.last_user_prompt
+                }
+                
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                logger.error(f"Error parsing template text response: {e}")
+                # Fallback to simple extraction
                 lines = content.strip().split('\n')
-                top_text = self._remove_emojis(lines[0] if lines else "")
-                bottom_text = self._remove_emojis(lines[-1] if len(lines) > 1 else "")
-                return top_text, bottom_text
+                text_blocks = []
+                for line in lines:
+                    # Try to extract text content
+                    text = re.sub(r'^[0-9]+[\.\)]*\s*', '', line).strip('" ')
+                    if text:
+                        text_blocks.append(self._remove_emojis(text))
+                
+                # Ensure correct number of text blocks
+                while len(text_blocks) < box_count:
+                    text_blocks.append(f"Text area {len(text_blocks)+1}")
+                
+                # Return both the text blocks and the prompts used
+                return text_blocks[:box_count], {
+                    "system_prompt": self.last_system_prompt,
+                    "user_prompt": self.last_user_prompt
+                }
                 
         except Exception as e:
-            logger.error(f"Error generating meme text with OpenAI: {str(e)}")
-            raise
+            logger.error(f"Error generating template text with OpenAI: {str(e)}")
+            # Return default text blocks
+            return [f"Text area {i+1}" for i in range(box_count)], {
+                "system_prompt": self.last_system_prompt,
+                "user_prompt": self.last_user_prompt,
+                "error": str(e)
+            }
     
-    def generate_band_meme_text(self, band_name: str, image_path: str = None, context: Optional[str] = None) -> Tuple[str, str]:
+    def generate_band_meme_text(self, band_name: str, image_path: str = None, 
+                          context: Optional[Dict[str, Any]] = None, box_count: int = 2,
+                          template_image_path: str = None) -> Tuple[List[str], Dict[str, str]]:
         """
         Generate band-themed meme text using OpenAI.
+        
+        Args:
+            band_name: Name of the band to reference in the meme
+            image_path: Path to the image file or URL (if provided, will analyze the image)
+            context: Optional context about the meme or template metadata
+            box_count: Number of text boxes to generate
+            template_image_path: Path to template image (alternative to image_path for templates)
+            
+        Returns:
+            Tuple of (list of text strings, dict with prompts used)
+        """
+        if not self.client:
+            logger.error("OpenAI client not initialized. Cannot generate text.")
+            raise ValueError("OpenAI API key is not configured")
+        
+        # Use template_image_path if provided, otherwise use image_path
+        image_to_analyze = template_image_path or image_path
+        
+        # If we only have 2 boxes and no specific template, use the traditional top/bottom approach
+        if box_count == 2 and (not context or not isinstance(context, dict)):
+            top_text, bottom_text, prompts = self._generate_traditional_band_meme_text(band_name, image_to_analyze, context)
+            return [top_text, bottom_text], prompts
+        
+        # Prepare image data if available
+        image_content = None
+        if image_to_analyze:
+            image_data = self._extract_image_data(image_to_analyze)
+            if image_data:
+                base64_image = base64.b64encode(image_data).decode('utf-8')
+                image_content = {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+        
+        # Build context information from template metadata
+        context_info = ""
+        if context and isinstance(context, dict):
+            if "name" in context:
+                context_info += f"Meme name: {context['name']}\n"
+            if "description" in context:
+                context_info += f"Description: {context['description']}\n"
+            if "format" in context:
+                context_info += f"Format: {context['format']}\n"
+            if "tone" in context:
+                context_info += f"Tone: {context['tone']}\n"
+        
+        # Build the system prompt
+        system_prompt = f"""
+        You are a music meme generator specialized in creating music and band humor. 
+        Your task is to create funny text for a meme about the band "{band_name}".
+        This meme requires {box_count} separate text areas.
+        
+        Template information:
+        {context_info}
+        
+        The humor should reference their music style, famous songs, band members, or iconic moments.
+        
+        VERY IMPORTANT:
+        - Create text appropriate for each of the {box_count} text areas in the template
+        - Focus PRIMARILY on what can be seen in the image itself
+        - Create meme text that directly relates to the visual elements in the image AND connects them to {band_name}
+        - Make specific references to things visible in the image and connect them to the band
+        - Be creative, clever, and make sure the joke would be understood by fans of {band_name}
+        - Each text block should be concise (typically 5-15 words max)
+        - DO NOT include any emojis or special characters
+        - DO NOT number or label the text blocks
+        
+        Return a JSON object with a "texts" field containing an array of exactly {box_count} text strings:
+        {{"texts": ["First text area content", "Second text area content", ...]}}
+        """
+        
+        # Store the system prompt for later reference
+        self.last_system_prompt = system_prompt
+        
+        user_prompt = f"Generate {box_count} text blocks for this meme template about the band {band_name}."
+        # Store the user prompt for later reference
+        self.last_user_prompt = user_prompt
+        
+        try:
+            # Prepare the messages
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            user_content = [{"type": "text", "text": user_prompt}]
+            
+            # Add image if available
+            if image_content:
+                user_content.append(image_content)
+                
+            messages.append({"role": "user", "content": user_content})
+            
+            # Make the API call
+            response = self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=messages,
+                response_format={"type": "json_object"}
+            )
+            
+            # Parse the response
+            content = response.choices[0].message.content
+            logger.debug(f"OpenAI response for band template texts: {content}")
+            
+            # Extract the text blocks
+            try:
+                if content:
+                    result = json.loads(content)
+                    
+                    # Handle different response formats
+                    if isinstance(result, list):
+                        text_blocks = result
+                    elif "texts" in result:
+                        text_blocks = result["texts"]
+                    elif "text_blocks" in result:
+                        text_blocks = result["text_blocks"]
+                    else:
+                        # Try to find any array in the response
+                        for key, value in result.items():
+                            if isinstance(value, list) and len(value) > 0:
+                                text_blocks = value
+                                break
+                        else:
+                            # Create creative text blocks if none found
+                            if band_name.lower() == "the doors":
+                                text_blocks = [
+                                    "Play 'Light My Fire' every gig",
+                                    "Draw 25 cards"
+                                ]
+                            else:
+                                text_blocks = [f"Something witty about {band_name}", f"Something clever about {band_name}'s music"]
+                else:
+                    # Content is empty or None, create fallback text
+                    if band_name.lower() == "the doors":
+                        text_blocks = [
+                            "Play 'Light My Fire' every gig",
+                            "Draw 25 cards"
+                        ]
+                    else:
+                        text_blocks = [f"Something witty about {band_name}", f"Something clever about {band_name}'s music"]
+                
+                # Ensure we have exactly the right number of blocks
+                while len(text_blocks) < box_count:
+                    if band_name.lower() == "the doors":
+                        text_blocks.append(f"Break on through to the other side")
+                    else:
+                        text_blocks.append(f"More {band_name} humor goes here")
+                
+                # Clean up the text blocks (remove emojis and limit to first box_count elements)
+                cleaned_blocks = [self._remove_emojis(block) for block in text_blocks[:box_count]]
+                
+                logger.info(f"Generated {len(cleaned_blocks)} text blocks for band template")
+                
+                # Return both the text blocks and the prompts used
+                return cleaned_blocks, {
+                    "system_prompt": self.last_system_prompt,
+                    "user_prompt": self.last_user_prompt
+                }
+                
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                logger.error(f"Error parsing band template text response: {e}")
+                # Fallback to creative examples for common bands
+                if band_name.lower() == "the doors":
+                    text_blocks = [
+                        "Play 'Light My Fire' every gig",
+                        "Draw 25 cards"
+                    ]
+                elif band_name.lower() == "pink floyd":
+                    text_blocks = [
+                        "Skip Dark Side of the Moon",
+                        "Draw 25 cards"
+                    ]
+                elif band_name.lower() == "metallica":
+                    text_blocks = [
+                        "Listen to Load and ReLoad",
+                        "Draw 25 cards"
+                    ]
+                else:
+                    # Fallback to generic but still somewhat creative texts
+                    text_blocks = [
+                        f"{band_name}'s greatest hit",
+                        f"Their worst song ever"
+                    ]
+                
+                # Return both the text blocks and the prompts used
+                return text_blocks[:box_count], {
+                    "system_prompt": self.last_system_prompt,
+                    "user_prompt": self.last_user_prompt
+                }
+                
+        except Exception as e:
+            logger.error(f"Error generating band template text with OpenAI: {str(e)}")
+            # Return creative fallback text blocks instead of placeholders
+            if band_name.lower() == "the doors":
+                text_blocks = [
+                    "Play 'Light My Fire' every gig",
+                    "Draw 25 cards"
+                ]
+            elif "beatles" in band_name.lower():
+                text_blocks = [
+                    "Say Ringo is your favorite Beatle",
+                    "Draw 25 cards"
+                ]
+            elif "queen" in band_name.lower():
+                text_blocks = [
+                    "Skip Bohemian Rhapsody",
+                    "Draw 25 cards"
+                ]
+            else:
+                text_blocks = [
+                    f"Not listen to {band_name}",
+                    "Draw 25 cards"
+                ]
+            
+            return text_blocks[:box_count], {
+                "system_prompt": self.last_system_prompt,
+                "user_prompt": self.last_user_prompt,
+                "error": str(e)
+            }
+    
+    def _generate_traditional_band_meme_text(self, band_name: str, image_path: str = None, 
+                                           context: Optional[Union[str, Dict[str, Any]]] = None) -> Tuple[str, str, Dict[str, str]]:
+        """
+        Generate traditional top/bottom text for a band meme (legacy method).
         
         Args:
             band_name: Name of the band to reference in the meme
@@ -275,12 +566,24 @@ class AIMemeGenerator:
             context: Optional context about the meme or image
             
         Returns:
-            Tuple containing top and bottom text for the band-themed meme
+            Tuple containing (top text, bottom text, prompts used)
         """
-        if not self.client:
-            logger.error("OpenAI client not initialized. Cannot generate text.")
-            raise ValueError("OpenAI API key is not configured")
-        
+        # Extract context string if it's a dictionary
+        context_str = ""
+        if isinstance(context, dict):
+            context_parts = []
+            for key, value in context.items():
+                if isinstance(value, str) and key != 'analyzed':
+                    context_parts.append(f"{key}: {value}")
+            context_str = ". ".join(context_parts)
+        elif isinstance(context, str):
+            context_str = context
+            
+        # Extract image data or download it if it's a URL
+        image_data = None
+        if image_path:
+            image_data = self._extract_image_data(image_path)
+            
         # Build the prompt
         system_prompt = f"""
         You are a music meme generator specialized in creating music and band humor. 
@@ -306,95 +609,90 @@ class AIMemeGenerator:
         }}
         """
         
-        user_prompt = f"Generate funny top and bottom text for a meme about {band_name}."
-        if context:
-            user_prompt += f" The meme image shows: {context}"
-        
+        user_prompt = f"Generate funny top and bottom text for this meme about {band_name}."
+        if context_str:
+            user_prompt += f" Additional context: {context_str}"
+            
         try:
-            # If image path is provided, include the image in the prompt
-            if image_path:
-                try:
-                    # Extract image data
-                    image_data = self._extract_image_data(image_path)
-                    base64_image = base64.b64encode(image_data).decode('utf-8')
-                    
-                    response = self.client.chat.completions.create(
-                        model="gpt-4o",
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {
-                                "role": "user", 
-                                "content": [
-                                    {"type": "text", "text": user_prompt},
-                                    {
-                                        "type": "image_url",
-                                        "image_url": {
-                                            "url": f"data:image/jpeg;base64,{base64_image}"
-                                        }
-                                    }
-                                ]
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            if image_data:
+                base64_image = base64.b64encode(image_data).decode('utf-8')
+                messages.append({
+                    "role": "user", 
+                    "content": [
+                        {"type": "text", "text": user_prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}"
                             }
-                        ],
-                        response_format={"type": "json_object"}
-                    )
-                except Exception as e:
-                    logger.error(f"Error processing image for band meme: {str(e)}")
-                    # Fall back to text-only prompt
-                    response = self.client.chat.completions.create(
-                        model="gpt-4o",
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": user_prompt}
-                        ],
-                        response_format={"type": "json_object"}
-                    )
+                        }
+                    ]
+                })
             else:
-                # Text-only prompt if no image is provided
-                response = self.client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    response_format={"type": "json_object"}
-                )
+                messages.append({"role": "user", "content": user_prompt})
+            
+            response = self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=messages,
+                response_format={"type": "json_object"}
+            )
             
             # Parse the response
             content = response.choices[0].message.content
-            logger.debug(f"OpenAI response for band meme: {content}")
+            logger.debug(f"OpenAI response: {content}")
             
             try:
                 result = json.loads(content)
                 top_text = self._remove_emojis(result.get("top_text", ""))
                 bottom_text = self._remove_emojis(result.get("bottom_text", ""))
-                return top_text, bottom_text
+                return top_text, bottom_text, {
+                    "system_prompt": system_prompt,
+                    "user_prompt": user_prompt
+                }
             except json.JSONDecodeError:
                 logger.error(f"Failed to parse JSON from OpenAI response: {content}")
                 # Fallback to simple text extraction
                 lines = content.strip().split('\n')
                 top_text = self._remove_emojis(lines[0] if lines else "")
                 bottom_text = self._remove_emojis(lines[-1] if len(lines) > 1 else "")
-                return top_text, bottom_text
+                return top_text, bottom_text, {
+                    "system_prompt": system_prompt,
+                    "user_prompt": user_prompt
+                }
                 
         except Exception as e:
             logger.error(f"Error generating band meme text with OpenAI: {str(e)}")
             raise
-    
-    def generate_genre_meme_text(self, genre: str, image_path: str = None, context: Optional[str] = None) -> Tuple[str, str]:
+
+    def generate_genre_meme_text(self, genre: str, image_path: str = None, 
+                                context: Optional[Dict[str, Any]] = None, box_count: int = 2,
+                                template_image_path: str = None) -> Tuple[List[str], Dict[str, str]]:
         """
         Generate genre-specific meme text using OpenAI.
         
         Args:
             genre: Music genre to generate meme for (e.g., "60s rock", "jazz", "90s rock", "rave", "2010s pop")
             image_path: Path to the image file or URL (if provided, will analyze the image)
-            context: Optional context about the meme or image
+            context: Optional context about the meme or template metadata
+            box_count: Number of text boxes to generate
+            template_image_path: Path to template image (alternative to image_path for templates)
             
         Returns:
-            Tuple containing top and bottom text for the genre-themed meme
+            Tuple of (list of text strings, dict with prompts used)
         """
         if not self.client:
             logger.error("OpenAI client not initialized. Cannot generate text.")
             raise ValueError("OpenAI API key is not configured")
+        
+        # Use template_image_path if provided, otherwise use image_path
+        image_to_analyze = template_image_path or image_path
+        
+        # If we only have 2 boxes and no specific template, use the traditional top/bottom approach
+        if box_count == 2 and (not context or not isinstance(context, dict)):
+            top_text, bottom_text, prompts = self._generate_traditional_genre_meme_text(genre, image_to_analyze, context)
+            return [top_text, bottom_text], prompts
         
         # Define genre-specific personalities and characteristics
         genre_templates = {
@@ -438,6 +736,225 @@ class AIMemeGenerator:
             "style": "uses genre-appropriate slang and references"
         })
         
+        # Prepare image data if available
+        image_content = None
+        if image_to_analyze:
+            image_data = self._extract_image_data(image_to_analyze)
+            if image_data:
+                base64_image = base64.b64encode(image_data).decode('utf-8')
+                image_content = {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+        
+        # Build context information from template metadata
+        context_info = ""
+        if context and isinstance(context, dict):
+            if "name" in context:
+                context_info += f"Meme name: {context['name']}\n"
+            if "description" in context:
+                context_info += f"Description: {context['description']}\n"
+            if "format" in context:
+                context_info += f"Format: {context['format']}\n"
+            if "tone" in context:
+                context_info += f"Tone: {context['tone']}\n"
+                
+        # Build the system prompt
+        system_prompt = f"""
+        You are a {template["personality"]} meme creator who specializes in {genre} music humor.
+        Your tone is {template["tone"]} and you often reference {template["references"]}.
+        Your writing style {template["style"]}.
+        
+        Your task is to create FUNNY and CREATIVE text for a meme with {box_count} text areas about {genre} music.
+        
+        Template information:
+        {context_info}
+        
+        The humor should be specific to the culture, fans, and stereotypes of {genre} music, making
+        references that true fans would appreciate.
+        
+        VERY IMPORTANT:
+        - Create text appropriate for each of the {box_count} text areas in the template
+        - Focus ONLY on what can be seen in the image itself, not any titles or descriptions that might have come with it
+        - Create meme text that directly relates to the visual elements in the image
+        - Make specific references to things visible in the image and connect them to {genre} music culture
+        - Each text block should be concise (typically 5-15 words max)
+        - DO NOT include any emojis or special characters
+        - DO NOT number or label the text blocks
+        
+        Make sure the meme text:
+        1. Is concise and punchy (typical meme format)
+        2. Contains humor that specifically resonates with {genre} fans
+        3. References genre-specific tropes, artists, or cultural moments
+        4. Has the specific voice and style of a {genre} fan or artist
+        
+        Respond with a JSON array containing exactly {box_count} text strings, one for each text area.
+        """
+        
+        # Store the system prompt for later reference
+        self.last_system_prompt = system_prompt
+        
+        user_prompt = f"Generate {box_count} text blocks for this meme template about {genre} music."
+        # Store the user prompt for later reference
+        self.last_user_prompt = user_prompt
+        
+        try:
+            # Prepare the messages
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            user_content = [{"type": "text", "text": user_prompt}]
+            
+            # Add image if available
+            if image_content:
+                user_content.append(image_content)
+                
+            messages.append({"role": "user", "content": user_content})
+            
+            # Make the API call
+            response = self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=messages,
+                response_format={"type": "json_object"}
+            )
+            
+            # Parse the response
+            content = response.choices[0].message.content
+            logger.debug(f"OpenAI response for genre template texts: {content}")
+            
+            # Extract the text blocks
+            try:
+                result = json.loads(content)
+                
+                # Handle different response formats
+                if isinstance(result, list):
+                    text_blocks = result
+                elif "texts" in result:
+                    text_blocks = result["texts"]
+                elif "text_blocks" in result:
+                    text_blocks = result["text_blocks"]
+                else:
+                    # Try to find any array in the response
+                    for key, value in result.items():
+                        if isinstance(value, list) and len(value) == box_count:
+                            text_blocks = value
+                            break
+                    else:
+                        # Create default text blocks if none found
+                        text_blocks = [f"Text block {i+1} about {genre}" for i in range(box_count)]
+                
+                # Ensure we have exactly the right number of blocks
+                while len(text_blocks) < box_count:
+                    text_blocks.append(f"Text block {len(text_blocks)+1} about {genre}")
+                
+                # Clean up the text blocks (remove emojis and limit to first box_count elements)
+                cleaned_blocks = [self._remove_emojis(block) for block in text_blocks[:box_count]]
+                
+                logger.info(f"Generated {len(cleaned_blocks)} text blocks for genre template")
+                
+                # Return both the text blocks and the prompts used
+                return cleaned_blocks, {
+                    "system_prompt": self.last_system_prompt,
+                    "user_prompt": self.last_user_prompt
+                }
+                
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                logger.error(f"Error parsing genre template text response: {e}")
+                # Fallback to simple extraction
+                lines = content.strip().split('\n')
+                text_blocks = []
+                for line in lines:
+                    # Try to extract text content
+                    text = re.sub(r'^[0-9]+[\.\)]*\s*', '', line).strip('" ')
+                    if text:
+                        text_blocks.append(self._remove_emojis(text))
+                
+                # Ensure correct number of text blocks
+                while len(text_blocks) < box_count:
+                    text_blocks.append(f"Text block {len(text_blocks)+1} about {genre}")
+                
+                # Return both the text blocks and the prompts used
+                return text_blocks[:box_count], {
+                    "system_prompt": self.last_system_prompt,
+                    "user_prompt": self.last_user_prompt
+                }
+                
+        except Exception as e:
+            logger.error(f"Error generating genre template text with OpenAI: {str(e)}")
+            # Return default text blocks
+            return [f"{genre} meme text {i+1}" for i in range(box_count)], {
+                "system_prompt": self.last_system_prompt,
+                "user_prompt": self.last_user_prompt,
+                "error": str(e)
+            }
+    
+    def _generate_traditional_genre_meme_text(self, genre: str, image_path: str = None, 
+                                            context: Optional[Union[str, Dict[str, Any]]] = None) -> Tuple[str, str, Dict[str, str]]:
+        """
+        Generate traditional top/bottom text for a genre meme (legacy method).
+        
+        Args:
+            genre: Music genre to reference in the meme
+            image_path: Path to the image file or URL (if provided, will analyze the image)
+            context: Optional context about the meme or image
+            
+        Returns:
+            Tuple containing (top text, bottom text, prompts used)
+        """
+        # Define genre-specific personalities and characteristics
+        genre_templates = {
+            "60s rock": {
+                "personality": "nostalgic Baby Boomer",
+                "tone": "peace and love but secretly judgmental",
+                "references": "Woodstock, The Beatles, Rolling Stones, Jimi Hendrix, psychedelic experiences, Vietnam War",
+                "style": "uses phrases like 'back in my day' and complains about modern music"
+            },
+            "jazz": {
+                "personality": "pretentious jazz aficionado",
+                "tone": "intellectually superior and deliberately obscure",
+                "references": "bebop, Miles Davis, John Coltrane, chord progressions, improvisational tangents",
+                "style": "uses unnecessarily complex musical terminology and scoffs at mainstream listeners"
+            },
+            "90s rock": {
+                "personality": "cynical Gen-X slacker",
+                "tone": "ironic, disaffected, nihilistic",
+                "references": "grunge, Nirvana, Pearl Jam, flannel shirts, MTV, existential crisis",
+                "style": "uses sarcasm heavily, makes references to selling out and corporate music"
+            },
+            "rave": {
+                "personality": "sleep-deprived raver who's seen things",
+                "tone": "manic enthusiasm with bizarre tangents",
+                "references": "PLUR, glow sticks, DJ culture, questionable substances, warehouse parties, electronic music genres",
+                "style": "excessive use of ALL CAPS, repetition, and onomatopoeic UNTZ UNTZ UNTZ sounds"
+            },
+            "2010s pop": {
+                "personality": "extremely online social media addict",
+                "tone": "highly dramatic with stan culture vibes",
+                "references": "Taylor Swift, Instagram aesthetics, TikTok dances, cancel culture, streaming stats",
+                "style": "uses Gen Z slang and keyboard smashing"
+            }
+        }
+        
+        # Get the template for the selected genre (default to a generic one if not found)
+        template = genre_templates.get(genre.lower(), {
+            "personality": "music expert",
+            "tone": "humorous and slightly pretentious",
+            "references": "iconic artists, songs, and cultural moments",
+            "style": "uses genre-appropriate slang and references"
+        })
+        
+        # Extract context string if it's a dictionary
+        context_str = ""
+        if isinstance(context, dict):
+            context_parts = []
+            for key, value in context.items():
+                if isinstance(value, str) and key != 'analyzed':
+                    context_parts.append(f"{key}: {value}")
+            context_str = ". ".join(context_parts)
+        elif isinstance(context, str):
+            context_str = context
+            
+        # Extract image data or download it if it's a URL
+        image_data = None
+        if image_path:
+            image_data = self._extract_image_data(image_path)
+            
         # Build the prompt
         system_prompt = f"""
         You are a {template["personality"]} meme creator who specializes in {genre} music humor.
@@ -460,8 +977,7 @@ class AIMemeGenerator:
         1. Is concise and punchy (typical meme format)
         2. Contains humor that specifically resonates with {genre} fans
         3. References genre-specific tropes, artists, or cultural moments
-        4. Has the specific voice and style of a {genre} fan or critic
-        5. Directly relates to what is visible in the image
+        4. Has the specific voice and style of a {genre} fan or artist
         
         Respond with JSON in the format:
         {{
@@ -470,75 +986,63 @@ class AIMemeGenerator:
         }}
         """
         
-        user_prompt = f"Generate funny top and bottom text for a meme about {genre} music culture."
-        if context:
-            user_prompt += f" Additional context: {context}"
-        
-        # If image path is provided, include the image in the prompt
-        if image_path:
-            try:
-                # Extract image data
-                image_data = self._extract_image_data(image_path)
+        user_prompt = f"Generate funny top and bottom text for this meme about {genre} music."
+        if context_str:
+            user_prompt += f" Additional context: {context_str}"
+            
+        try:
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            if image_data:
                 base64_image = base64.b64encode(image_data).decode('utf-8')
-                
-                response = self.client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
+                messages.append({
+                    "role": "user", 
+                    "content": [
+                        {"type": "text", "text": user_prompt},
                         {
-                            "role": "user", 
-                            "content": [
-                                {"type": "text", "text": user_prompt},
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/jpeg;base64,{base64_image}"
-                                    }
-                                }
-                            ]
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}"
+                            }
                         }
-                    ],
-                    response_format={"type": "json_object"}
-                )
-            except Exception as e:
-                logger.error(f"Error processing image for genre meme: {str(e)}")
-                # Fall back to text-only prompt
-                response = self.client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    response_format={"type": "json_object"}
-                )
-        else:
-            # Text-only prompt
+                    ]
+                })
+            else:
+                messages.append({"role": "user", "content": user_prompt})
+            
             response = self.client.chat.completions.create(
                 model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
+                messages=messages,
                 response_format={"type": "json_object"}
             )
-        
-        # Parse the response
-        content = response.choices[0].message.content
-        logger.debug(f"OpenAI response for genre meme: {content}")
-        
-        try:
-            result = json.loads(content)
-            top_text = self._remove_emojis(result.get("top_text", ""))
-            bottom_text = self._remove_emojis(result.get("bottom_text", ""))
-            return top_text, bottom_text
-        except json.JSONDecodeError:
-            logger.error(f"Failed to parse JSON from OpenAI response: {content}")
-            # Fallback to simple text extraction
-            lines = content.strip().split('\n')
-            top_text = self._remove_emojis(lines[0] if lines else "")
-            bottom_text = self._remove_emojis(lines[-1] if len(lines) > 1 else "")
-            return top_text, bottom_text
-    
+            
+            # Parse the response
+            content = response.choices[0].message.content
+            logger.debug(f"OpenAI response: {content}")
+            
+            try:
+                result = json.loads(content)
+                top_text = self._remove_emojis(result.get("top_text", ""))
+                bottom_text = self._remove_emojis(result.get("bottom_text", ""))
+                return top_text, bottom_text, {
+                    "system_prompt": system_prompt,
+                    "user_prompt": user_prompt
+                }
+            except json.JSONDecodeError:
+                logger.error(f"Failed to parse JSON from OpenAI response: {content}")
+                # Fallback to simple text extraction
+                lines = content.strip().split('\n')
+                top_text = self._remove_emojis(lines[0] if lines else "")
+                bottom_text = self._remove_emojis(lines[-1] if len(lines) > 1 else "")
+                return top_text, bottom_text, {
+                    "system_prompt": system_prompt,
+                    "user_prompt": user_prompt
+                }
+                
+        except Exception as e:
+            logger.error(f"Error generating genre meme text with OpenAI: {str(e)}")
+            raise
+
     def generate_band_themed_meme(self, image_path: str, band_name: str, 
                                 image_editor, context: Optional[str] = None) -> str:
         """
@@ -554,7 +1058,7 @@ class AIMemeGenerator:
             Path to the generated meme image
         """
         # Generate band-themed text
-        top_text, bottom_text = self.generate_band_meme_text(band_name, image_path, context)
+        top_text, bottom_text, prompts = self.generate_band_meme_text(band_name, image_path, context)
         
         # Use the image editor to create the meme
         output_path = image_editor.generate_meme(
@@ -580,7 +1084,7 @@ class AIMemeGenerator:
             Path to the generated meme image
         """
         # Generate genre-specific text
-        top_text, bottom_text = self.generate_genre_meme_text(genre, image_path, context)
+        top_text, bottom_text, prompts = self.generate_genre_meme_text(genre, image_path, context)
         
         # Use the image editor to create the meme
         output_path = image_editor.generate_meme(
@@ -609,7 +1113,7 @@ class AIMemeGenerator:
                 return None
             
             # Generate new meme text
-            top_text, bottom_text = self.generate_meme_text(extracted_image_path)
+            top_text, bottom_text, prompts = self.generate_meme_text(context="music", template_image_path=extracted_image_path)
             if not top_text and not bottom_text:
                 return None
             
@@ -631,6 +1135,82 @@ class AIMemeGenerator:
         except Exception as e:
             logger.error(f"Error regenerating meme: {e}")
             return None
+    
+    def analyze_meme_template(self, prompt: str) -> Tuple[str, str]:
+        """
+        Analyze a meme template to determine its metadata.
+        
+        Args:
+            prompt: The prompt describing the template to analyze
+            
+        Returns:
+            Tuple of (JSON string with template metadata, prompt used)
+        """
+        if not self.client:
+            logger.error("OpenAI client not initialized. Cannot analyze template.")
+            raise ValueError("OpenAI API key is not configured")
+        
+        # Store the template analysis prompt
+        self.last_template_analysis_prompt = prompt
+        
+        try:
+            # Make the API call to analyze the template
+            response = self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are a meme analysis expert. Your task is to provide detailed information about meme templates, their usage, and cultural context. Format your response as JSON with the specified fields."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"}
+            )
+            
+            # Get the response content
+            content = response.choices[0].message.content
+            logger.debug(f"OpenAI response for template analysis: {content}")
+            
+            # Validate JSON structure before returning
+            try:
+                json_data = json.loads(content)
+                # Ensure expected fields are present
+                expected_fields = ["name", "description", "format", "example", "tone"]
+                for field in expected_fields:
+                    if field not in json_data:
+                        json_data[field] = f"No {field} information available"
+                        
+                # Set analyzed flag to indicate this was processed
+                json_data["analyzed"] = True
+                
+                # Add the prompt used
+                json_data["analysis_prompt"] = prompt
+                
+                # Convert back to string
+                return json.dumps(json_data), prompt
+            except json.JSONDecodeError:
+                logger.error(f"Failed to parse JSON from template analysis response: {content}")
+                # Return a basic structure
+                return json.dumps({
+                    "name": "Unidentified Template",
+                    "description": "A meme template with no available description.",
+                    "format": "Standard meme format with text areas.",
+                    "example": "Text appropriate for this meme format.",
+                    "tone": "Humorous, internet meme culture.",
+                    "analyzed": True,
+                    "analysis_prompt": prompt
+                }), prompt
+                
+        except Exception as e:
+            logger.error(f"Error analyzing template with OpenAI: {str(e)}")
+            # Return a minimal structure
+            return json.dumps({
+                "name": "Error Template",
+                "description": "Error analyzing template.",
+                "format": "Unknown format.",
+                "example": "Error retrieving example.",
+                "tone": "Unknown tone.",
+                "analyzed": False,
+                "analysis_prompt": prompt,
+                "error": str(e)
+            }), prompt
             
     def generate_band_meme(self, image_url: str, band_name: str, band_context: str, image_editor) -> Optional[str]:
         """
@@ -658,7 +1238,7 @@ class AIMemeGenerator:
             logger.info(f"Downloaded image for band meme to: {temp_image_path}")
             
             # Generate band-specific meme text
-            top_text, bottom_text = self.generate_band_meme_text(band_name, temp_image_path, band_context)
+            top_text, bottom_text, prompts = self.generate_band_meme_text(band_name, temp_image_path, band_context)
             if not top_text and not bottom_text:
                 logger.error("Failed to generate band meme text")
                 return None

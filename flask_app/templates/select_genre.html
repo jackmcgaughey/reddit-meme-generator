@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Select Genre for Meme Template{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">Select a Music Genre</h2>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <img src="{{ template_url }}" alt="{{ template_name }}" class="img-fluid meme-template-img" style="max-height: 300px;">
+                        <h4 class="mt-3">Template: {{ template_name }}</h4>
+                    </div>
+
+                    <form action="{{ url_for('main.submit_genre_for_template') }}" method="post">
+                        <input type="hidden" name="template_id" value="{{ template_id }}">
+                        <input type="hidden" name="template_url" value="{{ template_url }}">
+                        <input type="hidden" name="template_name" value="{{ template_name }}">
+                        <input type="hidden" name="box_count" value="{{ box_count }}">
+                        <input type="hidden" name="context" value="{{ context }}">
+
+                        <div class="form-group mb-4">
+                            <label for="genre" class="form-label"><strong>Enter a music genre:</strong></label>
+                            <input type="text" class="form-control form-control-lg" id="genre" name="genre" placeholder="Enter music genre" required>
+                            <small class="form-text text-muted">The meme will be generated about this music genre.</small>
+                        </div>
+
+                        <div class="text-center mb-4">
+                            <button type="submit" class="btn btn-primary btn-lg">Generate Meme</button>
+                            <a href="{{ url_for('main.browse_meme_templates') }}" class="btn btn-secondary btn-lg ms-2">Cancel</a>
+                        </div>
+                    </form>
+
+                    <hr>
+
+                    <h4 class="mb-3">Quick Select Popular Genres</h4>
+                    <div class="row">
+                        {% for genre_name in genres %}
+                            <div class="col-md-6 col-lg-4 mb-2">
+                                <a href="{{ url_for('main.generate_template_meme', template_id=template_id, template_url=template_url, template_name=template_name, box_count=box_count, context=context, source_name=genre_name) }}" class="btn btn-outline-primary w-100 text-truncate">
+                                    {{ genre_name }}
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -6,9 +6,11 @@ import uuid
 import logging
 import requests
 import random
+import json
+from datetime import datetime
 from flask import (
     Blueprint, flash, g, redirect, render_template, request,
-    url_for, current_app, send_from_directory, jsonify
+    url_for, current_app, send_from_directory, jsonify, session
 )
 from werkzeug.utils import secure_filename
 
@@ -16,6 +18,8 @@ from config_manager import ConfigManager
 from reddit_api import RedditMemeAPI
 from ai_meme_generator import AIMemeGenerator
 from image_editor import MemeEditor
+from imgflip_api import ImgFlipAPI
+from imgflip_generator import ImgFlipGenerator
 
 # Set up logging
 logging.basicConfig(
@@ -41,6 +45,10 @@ user_agent = config.config.get('reddit', {}).get('user_agent', 'MemeGenerator/1.
 reddit_api = RedditMemeAPI(client_id=client_id, client_secret=client_secret, user_agent=user_agent)
 ai_generator = AIMemeGenerator()
 image_editor = MemeEditor()
+
+# Initialize ImgFlip clients
+imgflip_api = ImgFlipAPI(cache_dir="cache")
+imgflip_generator = ImgFlipGenerator(cache_dir="cache")
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
@@ -409,4 +417,468 @@ def upload_image():
             return redirect(url_for('main.genre_memes', uploaded_image=filename))
     else:
         flash('Invalid file type. Please upload a PNG, JPG, JPEG, or GIF file.')
-        return redirect(url_for('main.index')) 
+        return redirect(url_for('main.index'))
+
+@bp.route('/browse-meme-templates', methods=['GET', 'POST'])
+def browse_meme_templates():
+    """Browse available meme templates."""
+    if request.method == 'POST':
+        # Handle POST request (from other pages)
+        context = request.form.get('context', 'band')
+        source_name = request.form.get('source_name', '')
+        return redirect(url_for('main.browse_meme_templates', context=context, source_name=source_name))
+    
+    # Handle GET request (direct access or redirected from POST)
+    context = request.args.get('context', 'band')
+    source_name = request.args.get('source_name', '')
+    category = request.args.get('category', 'music')
+    
+    # Validate context
+    if context not in ['band', 'genre']:
+        context = 'band'
+    
+    # Get templates
+    if category == 'all':
+        templates = imgflip_api.get_templates()
+    else:
+        templates = imgflip_api.get_templates_by_category(category)
+    
+    return render_template('meme_templates.html', 
+                          templates=templates, 
+                          context=context, 
+                          source_name=source_name,
+                          category=category)
+
+@bp.route('/generate-template-meme', methods=['GET', 'POST'])
+def generate_template_meme():
+    """Generate a meme using a selected template and AI-generated text."""
+    template_id = request.args.get('template_id')
+    template_url = request.args.get('template_url')
+    template_name = request.args.get('template_name')
+    box_count = int(request.args.get('box_count', 2))
+    context = request.args.get('context', 'band')
+    source_name = request.args.get('source_name', '')
+    use_ai = current_app.config.get('USE_AI', True)  # Default to True if not configured
+    
+    # Initialize AI-generator for text creation
+    ai_generator = AIMemeGenerator()
+    
+    # Check for OpenAI API key
+    openai_api_key = current_app.config.get('OPENAI_API_KEY')
+    if not openai_api_key:
+        flash("OpenAI API key is not configured. Please set it in your environment variables.", "danger")
+        logger.error("OpenAI API key not set")
+        return redirect(url_for('main.browse_meme_templates', context=context, source_name=source_name))
+    
+    # Check for ImgFlip credentials
+    imgflip_username = current_app.config.get('IMGFLIP_USERNAME', '')
+    imgflip_password = current_app.config.get('IMGFLIP_PASSWORD', '')
+    
+    if not imgflip_username or not imgflip_password:
+        flash("ImgFlip credentials are not configured. Please set them in your config file.", "danger")
+        logger.error("ImgFlip credentials not set")
+        return redirect(url_for('main.browse_meme_templates', context=context, source_name=source_name))
+    else:
+        imgflip_generator.set_credentials(imgflip_username, imgflip_password)
+    
+    # Get template metadata for context
+    template_metadata = imgflip_generator.get_template_metadata(template_id)
+    
+    # Check if template metadata exists or needs to be generated
+    if not template_metadata.get('analyzed', False):
+        if use_ai:
+            # Generate template analysis using AI
+            prompt = f"""
+Analyze this meme template (ID: {template_id}, Box Count: {box_count})
+URL: {template_url}
+
+Please provide the following information about this meme template:
+1. Full Name: The complete/proper name of this meme template
+2. Description: A brief description of what the image shows and what the meme typically represents
+3. Format: How the template is typically used (what goes in each text area)
+4. Example: A typical example of text used in this meme (music-related)
+5. Tone: The emotional tone or context this meme is typically used in
+
+Format your response as a JSON structure with these keys: name, description, format, example, tone
+"""
+            template_metadata_json, analysis_prompt = ai_generator.analyze_meme_template(prompt)
+            try:
+                template_metadata = json.loads(template_metadata_json)
+            except json.JSONDecodeError:
+                logger.error("Failed to parse template metadata JSON")
+                template_metadata = {
+                    "name": f"Template {template_id}",
+                    "description": "A popular meme template.",
+                    "format": f"Template with {box_count} text fields.",
+                    "example": "Example text for this meme format.",
+                    "tone": "Humorous, internet meme culture."
+                }
+            imgflip_generator.save_template_metadata(template_id, template_metadata)
+    
+    # Generate meme text based on context and template
+    meme_texts = []
+    ai_prompts = {}
+    logger.info(f"Generating {box_count} text blocks for template {template_id}")
+
+    try:
+        if context == 'band':
+            text_blocks, ai_prompts = ai_generator.generate_band_meme_text(
+                source_name,
+                template_image_path=template_url,
+                context=template_metadata,
+                box_count=box_count
+            )
+        elif context == 'genre':
+            text_blocks, ai_prompts = ai_generator.generate_genre_meme_text(
+                source_name,
+                template_image_path=template_url,
+                context=template_metadata,
+                box_count=box_count
+            )
+        else:
+            # Default/fallback text generation
+            text_blocks, ai_prompts = ai_generator.generate_meme_text(
+                context="music",
+                template_image_path=template_url,
+                template_context=template_metadata,
+                box_count=box_count
+            )
+        
+        # Extract text blocks from response
+        meme_texts = text_blocks
+        logger.info(f"Generated {len(meme_texts)} text blocks successfully")
+    except Exception as e:
+        logger.error(f"Error generating meme text: {str(e)}", exc_info=True)
+        flash(f"An error occurred: {str(e)}", "danger")
+        return redirect(url_for('main.browse_meme_templates', context=context, source_name=source_name))
+    
+    # Output path for saving meme
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    unique_id = str(uuid.uuid4())[:8]
+    output_filename = f"template_meme_{unique_id}.jpg"
+    output_path = os.path.join(current_app.config['GENERATED_FOLDER'], output_filename)
+    
+    # Generate meme using ImgFlip API
+    try:
+        result = imgflip_generator.generate_from_template(
+            template_id=template_id,
+            texts=meme_texts,
+            output_path=output_path
+        )
+        
+        if result.get('success'):
+            meme_url = result.get('url')
+            logger.info(f"Meme generated successfully: {meme_url}")
+            
+            # Save meme to session for regeneration
+            session['last_template_meme'] = {
+                'template_id': template_id,
+                'template_url': template_url,
+                'template_name': template_name,
+                'box_count': box_count,
+                'context': context,
+                'source_name': source_name,
+                'texts': meme_texts
+            }
+            
+            # Add AI prompts from template analysis if available
+            if template_metadata.get('analysis_prompt'):
+                ai_prompts['template_analysis_prompt'] = template_metadata.get('analysis_prompt')
+            
+            return render_template('template_meme_result.html',
+                                  meme_url=meme_url,
+                                  meme_texts=meme_texts,
+                                  template_id=template_id,
+                                  template_url=template_url,
+                                  template_name=template_name,
+                                  box_count=box_count,
+                                  context=context,
+                                  source_name=source_name,
+                                  template_context=template_metadata,
+                                  ai_prompts=ai_prompts,
+                                  extra_context='')
+        else:
+            error_message = result.get('error_message', 'Unknown error')
+            logger.error(f"Error generating meme: {error_message}")
+            flash(f"Error generating meme: {error_message}", "danger")
+            return redirect(url_for('main.browse_meme_templates', context=context, source_name=source_name))
+    except Exception as e:
+        logger.error(f"Error generating meme: {str(e)}", exc_info=True)
+        flash(f"An error occurred: {str(e)}", "danger")
+        return redirect(url_for('main.browse_meme_templates', context=context, source_name=source_name))
+
+@bp.route('/regenerate-template-meme', methods=['GET', 'POST'])
+def regenerate_template_meme():
+    """Regenerate a meme using the same template but with new AI-generated text."""
+    # Get parameters
+    if request.method == 'POST':
+        template_id = request.form.get('template_id')
+        template_url = request.form.get('template_url')
+        template_name = request.form.get('template_name')
+        box_count = int(request.form.get('box_count', 2))
+        context = request.form.get('context', 'band')
+        source_name = request.form.get('source_name', '')
+    else:
+        template_id = request.args.get('template_id')
+        template_url = request.args.get('template_url')
+        template_name = request.args.get('template_name')
+        box_count = int(request.args.get('box_count', 2))
+        context = request.args.get('context', 'band')
+        source_name = request.args.get('source_name', '')
+    
+    # Log regeneration request
+    logger.info(f"Regenerating meme for template {template_id} with new AI-generated text")
+    
+    # Redirect to generate endpoint (which will create new AI prompts)
+    return redirect(url_for('main.generate_template_meme',
+                          template_id=template_id,
+                          template_url=template_url,
+                          template_name=template_name,
+                          box_count=box_count,
+                          context=context,
+                          source_name=source_name))
+
+@bp.route('/regenerate-with-updated-context', methods=['POST'])
+def regenerate_with_updated_context():
+    """Regenerate a meme with updated text or context."""
+    template_id = request.form.get('template_id')
+    template_url = request.form.get('template_url')
+    template_name = request.form.get('template_name')
+    box_count = int(request.form.get('box_count', 2))
+    context = request.form.get('context', 'band')
+    source_name = request.form.get('source_name', '')
+    extra_context = request.form.get('extra_context', '')
+    
+    # Get user-edited text boxes
+    text_boxes = request.form.getlist('text_boxes[]')
+    
+    # Initialize AI-generator and ImgFlip generator
+    ai_generator = AIMemeGenerator()
+    
+    # Check for ImgFlip credentials
+    imgflip_username = current_app.config.get('IMGFLIP_USERNAME', '')
+    imgflip_password = current_app.config.get('IMGFLIP_PASSWORD', '')
+    
+    if not imgflip_username or not imgflip_password:
+        flash("ImgFlip credentials are not configured. Please set them in your config file.", "danger")
+        logger.error("ImgFlip credentials not set")
+        return redirect(url_for('main.browse_meme_templates', context=context, source_name=source_name))
+    else:
+        imgflip_generator.set_credentials(imgflip_username, imgflip_password)
+    
+    # Get template metadata
+    template_metadata = imgflip_generator.get_template_metadata(template_id)
+    
+    # Create AI prompts dictionary with manually provided information
+    ai_prompts = {
+        "user_prompt": f"User manually edited the text boxes and provided this context: {extra_context}",
+        "system_prompt": "Text boxes were manually edited by the user"
+    }
+    
+    # Add template analysis prompt if available
+    if template_metadata and 'analysis_prompt' in template_metadata:
+        ai_prompts['template_analysis_prompt'] = template_metadata['analysis_prompt']
+    
+    # Output path for saving meme
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    unique_id = str(uuid.uuid4())[:8]
+    output_filename = f"template_meme_{unique_id}.jpg"
+    output_path = os.path.join(current_app.config['GENERATED_FOLDER'], output_filename)
+    
+    # Generate meme using ImgFlip API with the updated text
+    try:
+        result = imgflip_generator.generate_from_template(
+            template_id=template_id,
+            texts=text_boxes,
+            output_path=output_path
+        )
+        
+        if result.get('success'):
+            meme_url = result.get('url')
+            logger.info(f"Meme regenerated successfully with updated context: {meme_url}")
+            
+            # Save meme to session for regeneration
+            session['last_template_meme'] = {
+                'template_id': template_id,
+                'template_url': template_url,
+                'template_name': template_name,
+                'box_count': box_count,
+                'context': context,
+                'source_name': source_name,
+                'texts': text_boxes
+            }
+            
+            return render_template('template_meme_result.html',
+                                  meme_url=meme_url,
+                                  meme_texts=text_boxes,
+                                  template_id=template_id,
+                                  template_url=template_url,
+                                  template_name=template_name,
+                                  box_count=box_count,
+                                  context=context,
+                                  source_name=source_name,
+                                  template_context=template_metadata,
+                                  ai_prompts=ai_prompts,
+                                  extra_context=extra_context)
+        else:
+            error_message = result.get('error_message', 'Unknown error')
+            logger.error(f"Error regenerating meme: {error_message}")
+            flash(f"Error regenerating meme: {error_message}", "danger")
+            return redirect(url_for('main.browse_meme_templates', context=context, source_name=source_name))
+    except Exception as e:
+        logger.error(f"Error regenerating meme: {str(e)}", exc_info=True)
+        flash(f"An error occurred: {str(e)}", "danger")
+        return redirect(url_for('main.browse_meme_templates', context=context, source_name=source_name))
+
+@bp.route('/update-template-metadata', methods=['POST'])
+def update_template_metadata():
+    """Update meme template metadata manually."""
+    if request.method == 'POST':
+        template_id = request.form.get('template_id', '')
+        redirect_url = request.form.get('redirect_url', url_for('main.browse_meme_templates'))
+        
+        if not template_id:
+            flash('Missing template ID')
+            return redirect(redirect_url)
+        
+        try:
+            # Get the metadata fields from the form
+            metadata = {
+                'name': request.form.get('name', ''),
+                'description': request.form.get('description', ''),
+                'format': request.form.get('format', ''),
+                'example': request.form.get('example', ''),
+                'tone': request.form.get('tone', '')
+            }
+            
+            # Save the updated metadata
+            imgflip_api.save_custom_metadata(template_id, metadata)
+            
+            flash(f"Template metadata has been updated successfully.", 'success')
+            logger.info(f"Template {template_id} metadata manually updated: {metadata.get('name', 'Unknown')}")
+            
+            return redirect(redirect_url)
+            
+        except Exception as e:
+            logger.error(f"Error updating template metadata: {e}", exc_info=True)
+            flash(f'Error updating template metadata: {str(e)}')
+            return redirect(redirect_url)
+
+@bp.route('/select-band-for-template')
+def select_band_for_template():
+    """Select a band to use with a meme template."""
+    # Get template parameters from query string
+    template_id = request.args.get('template_id')
+    template_url = request.args.get('template_url')
+    template_name = request.args.get('template_name')
+    box_count = request.args.get('box_count', 2)
+    context = request.args.get('context', 'band')
+    
+    if not template_id or not template_url:
+        flash("Missing template information", "danger")
+        return redirect(url_for('main.browse_meme_templates'))
+    
+    # List of popular bands for quick selection
+    popular_bands = [
+        "The Beatles", "Queen", "Pink Floyd", "Led Zeppelin", "The Rolling Stones",
+        "AC/DC", "Metallica", "Black Sabbath", "Nirvana", "Guns N' Roses",
+        "Radiohead", "The Who", "U2", "The Doors", "Fleetwood Mac",
+        "Aerosmith", "Eagles", "Foo Fighters", "Red Hot Chili Peppers", "Pearl Jam"
+    ]
+    
+    return render_template('select_band.html',
+                          template_id=template_id,
+                          template_url=template_url,
+                          template_name=template_name,
+                          box_count=box_count,
+                          context=context,
+                          popular_bands=popular_bands)
+
+@bp.route('/select-genre-for-template')
+def select_genre_for_template():
+    """Select a music genre to use with a meme template."""
+    # Get template parameters from query string
+    template_id = request.args.get('template_id')
+    template_url = request.args.get('template_url')
+    template_name = request.args.get('template_name')
+    box_count = request.args.get('box_count', 2)
+    context = request.args.get('context', 'genre')
+    
+    if not template_id or not template_url:
+        flash("Missing template information", "danger")
+        return redirect(url_for('main.browse_meme_templates'))
+    
+    # Music genres
+    music_genres = [
+        "Rock", "Heavy Metal", "Pop", "Hip Hop", "Jazz", 
+        "Blues", "Country", "Electronic", "Classical", 
+        "Reggae", "Punk Rock", "R&B", "Soul", "Folk", 
+        "Indie Rock", "Techno", "Disco", "Alternative Rock", 
+        "Funk", "Grunge"
+    ]
+    
+    return render_template('select_genre.html',
+                          template_id=template_id,
+                          template_url=template_url,
+                          template_name=template_name,
+                          box_count=box_count,
+                          context=context,
+                          genres=music_genres)
+
+@bp.route('/submit-band-for-template', methods=['POST'])
+def submit_band_for_template():
+    """Submit the selected band and generate a meme with the template."""
+    if request.method == 'POST':
+        template_id = request.form.get('template_id')
+        template_url = request.form.get('template_url')
+        template_name = request.form.get('template_name')
+        box_count = request.form.get('box_count', 2)
+        context = request.form.get('context', 'band')
+        band_name = request.form.get('band_name', '')
+        
+        if not band_name:
+            flash("Please enter a band name", "danger")
+            return redirect(url_for('main.select_band_for_template', 
+                                   template_id=template_id,
+                                   template_url=template_url,
+                                   template_name=template_name,
+                                   box_count=box_count,
+                                   context=context))
+        
+        # Redirect to meme generation with the band name as source_name
+        return redirect(url_for('main.generate_template_meme',
+                              template_id=template_id,
+                              template_url=template_url,
+                              template_name=template_name,
+                              box_count=box_count,
+                              context=context,
+                              source_name=band_name))
+
+@bp.route('/submit-genre-for-template', methods=['POST'])
+def submit_genre_for_template():
+    """Submit the selected genre and generate a meme with the template."""
+    if request.method == 'POST':
+        template_id = request.form.get('template_id')
+        template_url = request.form.get('template_url')
+        template_name = request.form.get('template_name')
+        box_count = request.form.get('box_count', 2)
+        context = request.form.get('context', 'genre')
+        genre = request.form.get('genre', '')
+        
+        if not genre:
+            flash("Please select a genre", "danger")
+            return redirect(url_for('main.select_genre_for_template', 
+                                   template_id=template_id,
+                                   template_url=template_url,
+                                   template_name=template_name,
+                                   box_count=box_count,
+                                   context=context))
+        
+        # Redirect to meme generation with the genre as source_name
+        return redirect(url_for('main.generate_template_meme',
+                              template_id=template_id,
+                              template_url=template_url,
+                              template_name=template_name,
+                              box_count=box_count,
+                              context=context,
+                              source_name=genre)) 
