@@ -1175,6 +1175,20 @@ Format your response as a JSON structure with these keys: name, description, for
         title="Template Metadata Check", 
         content=content)
 
+@bp.route('/sync-template-metadata', methods=['GET'])
+def sync_template_metadata():
+    """Sync and validate all template metadata with the official template data."""
+    # Run the sync operation
+    success = imgflip_api.sync_metadata_with_templates()
+    
+    if success:
+        flash("Template metadata has been synchronized successfully. Descriptions now match the correct templates.", "success")
+    else:
+        flash("Error synchronizing template metadata. Please check the logs for details.", "danger")
+    
+    # Redirect back to template browser
+    return redirect(url_for('main.browse_meme_templates'))
+
 # Add template context processor for accessing template metadata in templates
 @bp.app_context_processor
 def inject_template_metadata():
@@ -1200,9 +1214,23 @@ def inject_template_metadata():
             if template_name != metadata_name:
                 logger.warning(f"Metadata mismatch: Template {template_id} name is '{template_name}' but metadata name is '{metadata_name}'")
                 
-                # Force metadata regeneration if there's a mismatch
-                # This will ensure the description matches the template
-                return None
+                # Instead of returning None, let's modify the metadata to indicate the mismatch
+                # This helps users understand there's an issue without breaking the UI
+                if 'description' in metadata:
+                    if isinstance(metadata['description'], dict):
+                        metadata['description']['mismatch_warning'] = f"⚠️ MISMATCH: This description is for '{metadata_name}', not '{template_name}'. Please click 'Repair Template-Description Mismatches' above."
+                    else:
+                        metadata['description'] = {
+                            'mismatch_warning': f"⚠️ MISMATCH: This description is for '{metadata_name}', not '{template_name}'. Please click 'Repair Template-Description Mismatches' above.",
+                            'text': metadata['description']
+                        }
+                else:
+                    metadata['description'] = {
+                        'mismatch_warning': f"⚠️ MISMATCH: Template name mismatch between '{metadata_name}' and '{template_name}'. Please click 'Repair Template-Description Mismatches' above."
+                    }
+                    
+                # Add a flag to indicate this is a mismatch
+                metadata['has_mismatch'] = True
                 
         return metadata
     

@@ -115,10 +115,19 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <div class="card-body">
             <p>Make sure all templates have proper descriptions for best results:</p>
-            <a href="{{ url_for('main.check_template_metadata') }}" class="btn btn-primary">Check Template Metadata</a>
-            <a href="{{ url_for('main.check_template_metadata', process='true', limit=10) }}" class="btn btn-success">Process 10 Missing Templates</a>
-            <a href="{{ url_for('main.check_template_metadata', process='true', force='true', limit=20) }}" class="btn btn-warning">Regenerate 20 Templates Metadata</a>
-            <a href="{{ url_for('main.check_template_metadata', process='true', all='true', force='true') }}" class="btn btn-danger">Regenerate All Metadata</a>
+            <div class="mb-3">
+                <a href="{{ url_for('main.check_template_metadata') }}" class="btn btn-primary">Check Template Metadata</a>
+                <a href="{{ url_for('main.check_template_metadata', process='true', limit=10) }}" class="btn btn-success">Process 10 Missing Templates</a>
+                <a href="{{ url_for('main.check_template_metadata', process='true', force='true', limit=20) }}" class="btn btn-warning">Regenerate 20 Templates Metadata</a>
+                <a href="{{ url_for('main.check_template_metadata', process='true', all='true', force='true') }}" class="btn btn-danger">Regenerate All Metadata</a>
+            </div>
+            <div class="mt-3">
+                <p><strong>Fix template-description mismatches:</strong></p>
+                <a href="{{ url_for('main.sync_template_metadata') }}" class="btn btn-primary btn-lg w-100">
+                    <i class="bi bi-wrench"></i> Repair Template-Description Mismatches
+                </a>
+                <small class="text-muted mt-2 d-block">Use this if template images and descriptions don't match correctly.</small>
+            </div>
         </div>
     </div>
     
@@ -191,9 +200,45 @@ document.addEventListener('DOMContentLoaded', function() {
                     {% set metadata = get_template_metadata(template.id) %}
                     {% if metadata and metadata.get('description') and metadata.get('description') != "A popular meme template." %}
                     <div class="template-metadata">
-                        <p class="card-text"><strong>Description:</strong> {{ metadata.description }}</p>
-                        <p class="card-text"><small><strong>Format:</strong> {{ metadata.format }}</small></p>
+                        {% if metadata.get('has_mismatch') %}
+                        <div class="alert alert-danger mb-2">
+                            {% if metadata.description.get('mismatch_warning') %}
+                                {{ metadata.description.get('mismatch_warning')|safe }}
+                            {% else %}
+                                ⚠️ Description mismatch detected. Please use the "Repair" button above.
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if metadata.description is mapping %}
+                            {% if metadata.description.get('image') %}
+                            <p class="card-text"><strong>Description:</strong> {{ metadata.description.image }}</p>
+                            {% elif metadata.description.get('text') %}
+                            <p class="card-text"><strong>Description:</strong> {{ metadata.description.text }}</p>
+                            {% endif %}
+                            
+                            {% if metadata.description.get('meaning') %}
+                            <p class="card-text"><small><strong>Meaning:</strong> {{ metadata.description.meaning }}</small></p>
+                            {% endif %}
+                        {% else %}
+                            <p class="card-text"><strong>Description:</strong> {{ metadata.description }}</p>
+                        {% endif %}
+                        
+                        {% if metadata.get('format') %}
+                            {% if metadata.format is mapping %}
+                                {% if metadata.format.get('usage') %}
+                                <p class="card-text"><small><strong>Format:</strong> {{ metadata.format.usage }}</small></p>
+                                {% elif metadata.format.get('box_1') %}
+                                <p class="card-text"><small><strong>Format:</strong> {{ metadata.format.box_1 }}</small></p>
+                                {% endif %}
+                            {% else %}
+                                <p class="card-text"><small><strong>Format:</strong> {{ metadata.format }}</small></p>
+                            {% endif %}
+                        {% endif %}
+                        
+                        {% if metadata.get('tone') %}
                         <p class="card-text"><small><strong>Tone:</strong> {{ metadata.tone }}</small></p>
+                        {% endif %}
                     </div>
                     {% else %}
                     <p class="card-text text-muted">No detailed description available. <a href="{{ url_for('main.check_template_metadata', process='true', template_id=template.id) }}">Generate one?</a></p>

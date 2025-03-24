@@ -415,4 +415,69 @@ class ImgFlipAPI:
         except Exception as e:
             logger.error(f"Error loading custom metadata: {str(e)}")
         
-        return {} 
+        return {}
+    
+    def sync_metadata_with_templates(self) -> bool:
+        """
+        Sync and validate custom metadata with template data.
+        This ensures that metadata is correctly associated with the right templates.
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Load fresh templates from the API
+            templates = self.get_templates(force_refresh=True)
+            
+            # Create a map of template IDs to names for quick lookup
+            template_map = {t['id']: t for t in templates}
+            
+            # Load the current custom metadata
+            custom_metadata = self._load_custom_metadata()
+            
+            # Create a new metadata dictionary with corrected entries
+            corrected_metadata = {}
+            
+            # Track templates with corrected metadata
+            corrected_count = 0
+            removed_count = 0
+            
+            # Process each custom metadata entry
+            for template_id, metadata in custom_metadata.items():
+                if template_id in template_map:
+                    # We found the template ID in our templates
+                    template = template_map[template_id]
+                    template_name = template.get('name')
+                    metadata_name = metadata.get('name')
+                    
+                    if metadata_name and template_name:
+                        if metadata_name != template_name:
+                            # Names don't match, log the issue
+                            logger.warning(f"Correcting metadata name: Template {template_id} API name '{template_name}' vs metadata name '{metadata_name}'")
+                            # Update the name in the metadata to match the template
+                            metadata['name'] = template_name
+                            corrected_count += 1
+                        
+                        # Add the validated/corrected entry to our new metadata dictionary
+                        corrected_metadata[template_id] = metadata
+                    else:
+                        # Missing name data, skip this entry
+                        logger.warning(f"Skipping metadata for template {template_id}: Missing name data")
+                        removed_count += 1
+                else:
+                    # Template ID not found in templates, skip this entry
+                    logger.warning(f"Skipping metadata for template {template_id}: Template not found in API data")
+                    removed_count += 1
+            
+            # Save the corrected metadata
+            self.custom_metadata = corrected_metadata
+            
+            with open(self.custom_metadata_path, 'w') as f:
+                json.dump(corrected_metadata, f, indent=2)
+                
+            logger.info(f"Metadata sync complete: {corrected_count} entries corrected, {removed_count} entries removed")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error syncing metadata with templates: {str(e)}")
+            return False 
