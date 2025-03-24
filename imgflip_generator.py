@@ -1,0 +1,420 @@
+"""
+ImgFlip Generator Module
+
+This module provides a wrapper to generate memes using the ImgFlip API.
+It includes functionality for:
+1. Fetching popular templates
+2. Generating memes from templates
+3. Managing template metadata and context analysis
+"""
+
+import os
+import json
+import logging
+import requests
+from typing import Dict, List, Any, Optional, Union
+import time
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+class ImgFlipGenerator:
+    """
+    A client for generating memes using the ImgFlip API.
+    """
+    
+    def __init__(self, 
+                 username: str = None, 
+                 password: str = None, 
+                 api_url: str = "https://api.imgflip.com",
+                 cache_dir: str = "cache"):
+        """
+        Initialize the ImgFlip Generator.
+        
+        Args:
+            username: ImgFlip username (optional)
+            password: ImgFlip password (optional)
+            api_url: ImgFlip API URL
+            cache_dir: Directory for caching and metadata
+        """
+        self.username = username
+        self.password = password
+        self.api_url = api_url
+        
+        # Set up cache directory
+        self.cache_dir = cache_dir
+        os.makedirs(self.cache_dir, exist_ok=True)
+        
+        # Cache file paths
+        self.templates_cache_path = os.path.join(self.cache_dir, "templates_cache.json")
+        self.custom_metadata_path = os.path.join(self.cache_dir, "custom_template_metadata.json")
+        
+        # Load existing data
+        self.templates_cache = self._load_templates_cache()
+        self.custom_metadata = self._load_custom_metadata()
+        
+    def set_credentials(self, username: str, password: str) -> None:
+        """
+        Set ImgFlip API credentials.
+        
+        Args:
+            username: ImgFlip username
+            password: ImgFlip password
+        """
+        self.username = username
+        self.password = password
+    
+    def get_popular_templates(self, force_refresh: bool = False) -> List[Dict[str, Any]]:
+        """
+        Get a list of popular meme templates from ImgFlip.
+        
+        Args:
+            force_refresh: If True, bypass cache and fetch fresh data
+            
+        Returns:
+            List of template dictionaries with id, name, url, width, height, box_count
+        """
+        # Check if we have cached templates and they're not expired (< 24 hours old)
+        cache_valid = False
+        if not force_refresh and self.templates_cache:
+            cache_time = self.templates_cache.get("timestamp", 0)
+            # Cache is valid for 24 hours
+            if time.time() - cache_time < 24 * 60 * 60:
+                cache_valid = True
+                logger.info(f"Using cached templates ({len(self.templates_cache['templates'])} items)")
+                return self.templates_cache["templates"]
+        
+        if force_refresh or not cache_valid:
+            try:
+                # Fetch templates from ImgFlip API
+                response = requests.get(f"{self.api_url}/get_memes")
+                response.raise_for_status()
+                data = response.json()
+                
+                if data["success"]:
+                    templates = data["data"]["memes"]
+                    
+                    # Update cache
+                    self.templates_cache = {
+                        "timestamp": time.time(),
+                        "templates": templates
+                    }
+                    self._save_templates_cache()
+                    
+                    logger.info(f"Fetched {len(templates)} templates from ImgFlip API")
+                    return templates
+                else:
+                    logger.error("Failed to fetch templates from ImgFlip API")
+                    # Return empty cache if it exists
+                    return self.templates_cache.get("templates", [])
+            except Exception as e:
+                logger.error(f"Error fetching templates: {str(e)}")
+                # Return empty cache if it exists
+                return self.templates_cache.get("templates", [])
+        
+        return []
+    
+    def generate_from_template(self, 
+                             template_id: str, 
+                             texts: Union[Dict[str, str], List[str]], 
+                             output_path: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Generate a meme from a template using the ImgFlip API.
+        
+        Args:
+            template_id: The ImgFlip template ID
+            texts: Dictionary of box indices to text, or a list of text strings
+            output_path: Optional path to save the generated meme
+            
+        Returns:
+            Dictionary with results, including success status, URL, and error message if applicable
+        """
+        # Validate credentials
+        if not self.username or not self.password:
+            logger.error("ImgFlip credentials not set")
+            return {"success": False, "error_message": "ImgFlip username and password are required"}
+            
+        # Prepare API parameters
+        params = {
+            "template_id": template_id,
+            "username": self.username,
+            "password": self.password
+        }
+        
+        # Process text inputs
+        if isinstance(texts, list):
+            # Handle list format by converting to box format
+            for i, text in enumerate(texts):
+                params[f"boxes[{i}][text]"] = text
+        elif isinstance(texts, dict):
+            # Handle dictionary format with explicit box indices
+            for box_index, text in texts.items():
+                params[f"boxes[{box_index}][text]"] = text
+        else:
+            logger.error("Invalid texts format. Must be a list or dictionary.")
+            return {"success": False, "error_message": "Invalid texts format"}
+        
+        try:
+            # Make the API request
+            response = requests.post(f"{self.api_url}/caption_image", data=params)
+            response.raise_for_status()
+            data = response.json()
+            
+            if data["success"]:
+                meme_url = data["data"]["url"]
+                logger.info(f"Meme successfully generated at URL: {meme_url}")
+                
+                # Save the meme locally if output path is provided
+                if output_path:
+                    saved = self._save_image_from_url(meme_url, output_path)
+                    if saved:
+                        return {
+                            "success": True, 
+                            "url": meme_url, 
+                            "local_path": output_path
+                        }
+                    else:
+                        return {
+                            "success": True, 
+                            "url": meme_url, 
+                            "local_path": None,
+                            "warning": "Could not save meme locally"
+                        }
+                
+                return {"success": True, "url": meme_url}
+            else:
+                error_message = data.get("error_message", "Unknown error")
+                logger.error(f"ImgFlip API error: {error_message}")
+                return {"success": False, "error_message": error_message}
+                
+        except requests.RequestException as e:
+            logger.error(f"Error making request to ImgFlip API: {str(e)}")
+            return {"success": False, "error_message": f"API request error: {str(e)}"}
+        except Exception as e:
+            logger.error(f"Unexpected error generating meme: {str(e)}")
+            return {"success": False, "error_message": f"Unexpected error: {str(e)}"}
+    
+    def get_template_metadata(self, template_id: str) -> Dict[str, Any]:
+        """
+        Get metadata for a specific template, including any custom analysis.
+        
+        Args:
+            template_id: The template ID
+            
+        Returns:
+            Dictionary of template metadata and analysis
+        """
+        # Check in custom metadata first
+        if template_id in self.custom_metadata:
+            return self.custom_metadata[template_id]
+            
+        # Check in templates cache
+        for template in self.templates_cache.get("templates", []):
+            if str(template["id"]) == str(template_id):
+                return template
+                
+        # Return empty metadata
+        return {
+            "name": f"Template {template_id}",
+            "box_count": 2
+        }
+        
+    def save_template_metadata(self, template_id: str, metadata: Dict[str, Any]) -> bool:
+        """
+        Save custom metadata for a template.
+        
+        Args:
+            template_id: The template ID
+            metadata: Dictionary of metadata to save
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Update metadata
+            self.custom_metadata[template_id] = metadata
+            
+            # Save to file
+            with open(self.custom_metadata_path, 'w') as f:
+                json.dump(self.custom_metadata, f, indent=2)
+                
+            logger.info(f"Saved custom metadata for template {template_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error saving custom metadata: {str(e)}")
+            return False
+            
+    def is_template_analyzed(self, template_id: str) -> bool:
+        """
+        Check if a template has been analyzed for context and usage.
+        
+        Args:
+            template_id: The template ID
+            
+        Returns:
+            True if the template has been analyzed, False otherwise
+        """
+        metadata = self.get_template_metadata(template_id)
+        return metadata.get("analyzed", False)
+    
+    def create_template_analysis_prompt(self, template_id: str, box_count: int, template_url: str) -> str:
+        """
+        Create a prompt for analyzing a meme template.
+        
+        Args:
+            template_id: The template ID
+            box_count: Number of text boxes in the template
+            template_url: URL of the template image
+            
+        Returns:
+            Prompt string for template analysis
+        """
+        prompt = f"""
+Analyze this meme template thoroughly (ID: {template_id}, Box Count: {box_count})
+URL: {template_url}
+
+I need detailed information about this specific meme template to generate appropriate content:
+
+1. Full Name: The complete/proper name of this meme template
+
+2. Description: A detailed description of:
+   - What the image actually shows (people, objects, scene)
+   - The typical meaning or use of this meme in internet culture
+   - What makes this template recognizable or unique
+
+3. Format: Explain precisely how this template with {box_count} text boxes is used:
+   - What specific content goes in each text area 
+   - The relationship between the text areas
+   - The specific format or pattern that makes this meme template work
+   - If each text area represents different speakers, perspectives, or concepts
+
+4. Example: Provide 1-2 examples of text that would typically be used in this meme, showing exactly what would go in each text area
+
+5. Tone: The emotional tone or context this meme is typically used in (humorous, ironic, sarcastic, etc.)
+
+Your analysis must accurately reflect this specific template's actual usage in meme culture. 
+Format your response as a JSON structure with these keys: name, description, format, example, tone
+"""
+        return prompt
+    
+    def search_templates(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Search for templates matching a query.
+        
+        Args:
+            query: Search term to match against template names
+            
+        Returns:
+            List of matching templates
+        """
+        templates = self.get_popular_templates()
+        
+        # Perform case-insensitive search on template names
+        query = query.lower()
+        results = [t for t in templates if query in t["name"].lower()]
+        
+        logger.info(f"Found {len(results)} templates matching query: '{query}'")
+        return results
+    
+    def filter_templates_by_box_count(self, box_count: int) -> List[Dict[str, Any]]:
+        """
+        Filter templates by number of text boxes.
+        
+        Args:
+            box_count: Number of text boxes required
+            
+        Returns:
+            List of matching templates
+        """
+        templates = self.get_popular_templates()
+        results = [t for t in templates if t["box_count"] == box_count]
+        
+        logger.info(f"Found {len(results)} templates with {box_count} text boxes")
+        return results
+    
+    def _save_image_from_url(self, url: str, output_path: str) -> bool:
+        """
+        Download and save an image from a URL.
+        
+        Args:
+            url: URL of the image to download
+            output_path: Path to save the image
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Make the request to get the image
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
+            
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+            
+            # Save the image
+            with open(output_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+                    
+            logger.info(f"Image saved to {output_path}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error saving image from URL: {str(e)}")
+            return False
+    
+    def _load_templates_cache(self) -> Dict[str, Any]:
+        """
+        Load templates cache from file.
+        
+        Returns:
+            Dictionary with templates and timestamp
+        """
+        try:
+            if os.path.exists(self.templates_cache_path):
+                with open(self.templates_cache_path, 'r') as f:
+                    data = json.load(f)
+                    logger.info(f"Loaded {len(data.get('templates', []))} templates from cache")
+                    return data
+        except Exception as e:
+            logger.error(f"Error loading templates cache: {str(e)}")
+        
+        return {"timestamp": 0, "templates": []}
+    
+    def _save_templates_cache(self) -> bool:
+        """
+        Save templates cache to file.
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            with open(self.templates_cache_path, 'w') as f:
+                json.dump(self.templates_cache, f, indent=2)
+                
+            logger.info(f"Saved {len(self.templates_cache.get('templates', []))} templates to cache")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error saving templates cache: {str(e)}")
+            return False
+            
+    def _load_custom_metadata(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Load custom metadata from file.
+        
+        Returns:
+            Dictionary of template IDs to metadata dictionaries
+        """
+        try:
+            if os.path.exists(self.custom_metadata_path):
+                with open(self.custom_metadata_path, 'r') as f:
+                    metadata = json.load(f)
+                    logger.info(f"Loaded custom metadata for {len(metadata)} templates")
+                    return metadata
+        except Exception as e:
+            logger.error(f"Error loading custom metadata: {str(e)}")
+        
+        return {} 

@@ -5,6 +5,7 @@ This module provides functionality to:
 1. Extract images from existing memes
 2. Generate new meme text using OpenAI
 3. Create new memes with the extracted images and AI-generated text
+4. Analyze meme templates to understand their context and typical usage
 """
 import os
 import logging
@@ -12,7 +13,7 @@ import base64
 import requests
 import re
 from io import BytesIO
-from typing import Tuple, Optional, Dict, Any
+from typing import Tuple, Optional, Dict, Any, List
 from PIL import Image
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -53,6 +54,107 @@ class AIMemeGenerator:
         except Exception as e:
             logger.error(f"Failed to initialize OpenAI client: {e}")
             self.client = None
+    
+    def analyze_meme_template(self, template_prompt: str) -> Dict[str, Any]:
+        """
+        Analyze a meme template to understand its context and typical usage.
+        
+        Args:
+            template_prompt: Prompt containing template information and analysis instructions
+            
+        Returns:
+            Dictionary containing the analysis results
+        """
+        if not self.client:
+            logger.error("OpenAI client not initialized. Cannot analyze template.")
+            raise ValueError("OpenAI API key is not configured")
+        
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are an expert in internet meme culture and formats. You analyze meme templates to describe their typical usage, format, and context."},
+                    {"role": "user", "content": template_prompt}
+                ],
+                response_format={"type": "json_object"}
+            )
+            
+            # Parse the response
+            content = response.choices[0].message.content
+            logger.debug(f"Template analysis response: {content}")
+            
+            try:
+                analysis = json.loads(content)
+                # Mark the template as analyzed
+                analysis["analyzed"] = True
+                # Add a timestamp
+                analysis["analysis_prompt"] = template_prompt
+                return analysis
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse JSON from template analysis: {e}")
+                return {
+                    "name": "Unknown Template",
+                    "description": "Failed to analyze template",
+                    "analyzed": False,
+                    "error": str(e)
+                }
+                
+        except Exception as e:
+            logger.error(f"Error analyzing template: {str(e)}")
+            return {
+                "name": "Unknown Template",
+                "description": "Failed to analyze template",
+                "analyzed": False,
+                "error": str(e)
+            }
+    
+    def analyze_template_batch(self, templates: List[Dict[str, Any]], imgflip_generator) -> Dict[str, Dict[str, Any]]:
+        """
+        Analyze a batch of templates.
+        
+        Args:
+            templates: List of template dictionaries to analyze
+            imgflip_generator: ImgFlipGenerator instance with template metadata functions
+            
+        Returns:
+            Dictionary mapping template IDs to analysis results
+        """
+        results = {}
+        
+        for template in templates:
+            template_id = str(template["id"])
+            
+            # Skip if already analyzed
+            if imgflip_generator.is_template_analyzed(template_id):
+                logger.info(f"Template {template_id} already analyzed, skipping")
+                continue
+                
+            box_count = template.get("box_count", 2)
+            template_url = template.get("url", "")
+            
+            # Create analysis prompt
+            prompt = imgflip_generator.create_template_analysis_prompt(
+                template_id=template_id,
+                box_count=box_count,
+                template_url=template_url
+            )
+            
+            # Analyze the template
+            logger.info(f"Analyzing template {template_id} ({template.get('name', 'Unknown')})")
+            analysis = self.analyze_meme_template(prompt)
+            
+            # Save to results
+            results[template_id] = analysis
+            
+            # Save to cache
+            imgflip_generator.save_template_metadata(template_id, analysis)
+            
+            # Add a small delay to avoid rate limiting
+            if len(results) > 0 and len(results) % 5 == 0:
+                logger.info(f"Analyzed {len(results)} templates so far")
+                
+        logger.info(f"Completed analysis of {len(results)} templates")
+        return results
     
     def _extract_image_data(self, image_path: str) -> bytes:
         """
@@ -680,4 +782,176 @@ class AIMemeGenerator:
             
         except Exception as e:
             logger.error(f"Error generating band meme: {e}")
-            return None 
+            return None
+
+    def generate_template_specific_meme_text(
+        self, 
+        template_analysis: Dict[str, Any], 
+        band_or_genre: str = None, 
+        context: str = None,
+        is_band: bool = True
+    ) -> List[str]:
+        """
+        Generate meme text that fits the specific template's format, optionally with band or genre context.
+        
+        Args:
+            template_analysis: Template analysis data
+            band_or_genre: Optional band name or genre to reference in the meme
+            context: Additional context to consider
+            is_band: True if band_or_genre is a band name, False if it's a genre
+            
+        Returns:
+            List of text strings for each text box in the template
+        """
+        if not self.client:
+            logger.error("OpenAI client not initialized. Cannot generate text.")
+            raise ValueError("OpenAI API key is not configured")
+        
+        # Build system prompt with template-specific information
+        system_prompt = """
+        You are an expert meme creator who understands the proper format and usage of specific meme templates.
+        Your task is to create text for a meme that follows the established conventions of the template
+        while incorporating the requested theme or topic.
+        
+        Create text that strictly follows the template's format and maintains its typical tone and style.
+        The text must work with the template's visual elements and match how this meme is typically used.
+        Keep the text concise and punchy, as appropriate for internet memes.
+        """
+        
+        # Add template-specific information
+        template_name = template_analysis.get("name", "Unknown Template")
+        template_description = template_analysis.get("description", {})
+        if isinstance(template_description, str):
+            description_text = template_description
+        else:
+            # Handle both string and dictionary formats for description
+            description_keys = ["image_description", "typical_usage", "recognizable_features", 
+                               "image_content", "culturalMeaning", "uniqueElements", "scene", 
+                               "meaning", "uniqueness", "imageContent", "typicalMeaning"]
+            description_parts = []
+            for key in description_keys:
+                if key in template_description:
+                    description_parts.append(template_description[key])
+            description_text = " ".join(description_parts)
+            
+        format_info = template_analysis.get("format", {})
+        if isinstance(format_info, str):
+            format_text = format_info
+        else:
+            # Try to extract format information from various potential keys
+            format_keys = ["text_area_usage", "text_relationship", "pattern_usage", 
+                          "textAreas", "relationship", "pattern", "content_placement",
+                          "text_placement", "layout", "text_box_usage"]
+            format_parts = []
+            for key in format_keys:
+                if key in format_info:
+                    if isinstance(format_info[key], list):
+                        format_parts.append(" ".join(format_info[key]))
+                    else:
+                        format_parts.append(str(format_info[key]))
+            format_text = " ".join(format_parts)
+            
+        # Extract examples if available
+        examples = template_analysis.get("example", [])
+        example_text = "Examples:\n"
+        if examples:
+            for i, example in enumerate(examples):
+                example_text += f"Example {i+1}:\n"
+                if isinstance(example, dict):
+                    for key, value in example.items():
+                        example_text += f"  - {key}: {value}\n"
+                else:
+                    example_text += f"  {example}\n"
+        
+        # Add tone information
+        tone = template_analysis.get("tone", "humorous")
+        
+        # Build user prompt
+        user_prompt = f"""
+        Create text for the "{template_name}" meme template.
+        
+        TEMPLATE INFORMATION:
+        Description: {description_text}
+        
+        Format: {format_text}
+        
+        {example_text}
+        
+        Tone: {tone}
+        """
+        
+        # Add band or genre context if provided
+        if band_or_genre:
+            if is_band:
+                user_prompt += f"""
+                THEME: Create text about the band "{band_or_genre}".
+                Reference their music, style, band members, or place in music culture.
+                The humor should be specific to this band while following the template's format.
+                """
+            else:
+                user_prompt += f"""
+                THEME: Create text about the music genre "{band_or_genre}".
+                Reference typical elements, artists, or cultural aspects of this genre.
+                The humor should be specific to this music genre while following the template's format.
+                """
+                
+        if context:
+            user_prompt += f"\nAdditional context to consider: {context}\n"
+            
+        user_prompt += """
+        RESPONSE FORMAT:
+        Respond with a JSON array containing ONLY the text for each box in the meme template.
+        For example, if the template has 2 text boxes:
+        ["Text for the first box", "Text for the second box"]
+        
+        Keep each text entry concise and fitting for a meme (typically under 10 words per text box).
+        """
+        
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                response_format={"type": "json_object"}
+            )
+            
+            # Parse the response
+            content = response.choices[0].message.content
+            logger.debug(f"Template-specific meme text response: {content}")
+            
+            try:
+                result = json.loads(content)
+                
+                # Handle different response formats
+                if isinstance(result, list):
+                    text_items = result
+                elif isinstance(result, dict) and "text" in result:
+                    text_items = result["text"]
+                elif isinstance(result, dict) and "texts" in result:
+                    text_items = result["texts"]
+                else:
+                    # Extract any list found in the response
+                    for key, value in result.items():
+                        if isinstance(value, list):
+                            text_items = value
+                            break
+                    else:
+                        # If no list found, convert dictionary values to list
+                        text_items = list(result.values())
+                
+                # Clean the text items
+                clean_texts = [self._remove_emojis(text) for text in text_items]
+                return clean_texts
+                
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse JSON from meme text generation: {e}")
+                # Fallback to simple text extraction
+                lines = content.strip().split('\n')
+                clean_lines = [self._remove_emojis(line) for line in lines]
+                return clean_lines[:5]  # Limit to 5 lines max
+                
+        except Exception as e:
+            logger.error(f"Error generating template-specific meme text: {str(e)}")
+            raise 
