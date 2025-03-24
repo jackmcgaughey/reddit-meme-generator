@@ -1,0 +1,32 @@
+{
+  "181913649": {
+    "name": "Drake Hotline Bling",
+    "description": {
+      "imageContent": "The image consists of two panels featuring the Canadian rapper Drake. In the top panel, Drake is holding up his hand in a gesture of refusal or rejection with a displeased expression. In the bottom panel, Drake appears pleased and satisfied, pointing approvingly with a smile.",
+      "typicalMeaning": "This meme template is used to express preference for one thing over another. It visually demonstrates rejecting or dismissing an option (top panel) in favor of a preferable alternative (bottom panel).",
+      "recognizableFeatures": "The template is iconic due to Drake's distinct gestures - the rejection in the first panel contrasted with the enthusiastic approval in the second panel. The clear shift from disapproval to approval makes it universally recognizable."
+    },
+    "format": {
+      "textUsage": "The first text box (top panel) typically contains something conventional, expected, or popular that is being rejected or dismissed. The second text box (bottom panel) contains an alternative that is being preferred or approved, often something unconventional, niche, or considered 'superior' by the meme creator.",
+      "relationshipBetweenTextAreas": "The two text areas represent a direct comparison between options, with a clear preference being expressed for the second option over the first. The humor often comes from the unexpected preference or the exaggerated difference between the options.",
+      "pattern": "The template works by establishing a clear hierarchy of preference, rejecting something common or expected in favor of something else that the meme creator considers better."
+    },
+    "example": [
+      {
+        "firstText": "Using the actual product name",
+        "secondText": "Using a funny nickname instead"
+      },
+      {
+        "firstText": "Studying for the exam",
+        "secondText": "Making Drake Hotline Bling memes instead"
+      }
+    ],
+    "tone": "humorous, often with a touch of irony or satire",
+    "analyzed": true,
+    "template_id": "181913649",
+    "template_url": "https://i.imgflip.com/30b1gx.jpg",
+    "analysis_prompt": "\nAnalyze this meme template thoroughly (ID: 181913649, Box Count: 2)\nURL: https://i.imgflip.com/30b1gx.jpg\n\nI need detailed information about this specific meme template to generate appropriate content:\n\n1. Full Name: The complete/proper name of this meme template\n\n2. Description: A detailed description of:\n   - What the image actually shows (people, objects, scene)\n   - The typical meaning or use of this meme in internet culture\n   - What makes this template recognizable or unique\n\n3. Format: Explain precisely how this template with 2 text boxes is used:\n   - What specific content goes in each text area \n   - The relationship between the text areas\n   - The specific format or pattern that makes this meme template work\n   - If each text area represents different speakers, perspectives, or concepts\n\n4. Example: Provide 1-2 examples of text that would typically be used in this meme, showing exactly what would go in each text area\n\n5. Tone: The emotional tone or context this meme is typically used in (humorous, ironic, sarcastic, etc.)\n\nYour analysis must accurately reflect this specific template's actual usage in meme culture. \nFormat your response as a JSON structure with these keys: name, description, format, example, tone\n",
+    "url": "https://i.imgflip.com/30b1gx.jpg",
+    "box_count": 2
+  }
+}

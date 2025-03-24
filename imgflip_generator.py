@@ -54,6 +54,11 @@ class ImgFlipGenerator:
         self.templates_cache = self._load_templates_cache()
         self.custom_metadata = self._load_custom_metadata()
         
+        # Verify template metadata cache integrity
+        repairs = self.verify_template_metadata_cache()
+        if repairs > 0:
+            logger.info(f"Fixed {repairs} template metadata mismatches during initialization")
+        
     def set_credentials(self, username: str, password: str) -> None:
         """
         Set ImgFlip API credentials.
@@ -232,6 +237,28 @@ class ImgFlipGenerator:
             True if successful, False otherwise
         """
         try:
+            # Verify template ID matches the correct template
+            template_in_cache = None
+            for template in self.templates_cache.get("templates", []):
+                if str(template["id"]) == str(template_id):
+                    template_in_cache = template
+                    break
+                    
+            if template_in_cache:
+                # Ensure metadata name matches the template cache name to prevent mismatched templates
+                if metadata.get("name") and template_in_cache.get("name") and metadata["name"] != template_in_cache["name"]:
+                    logger.warning(f"Template name mismatch: expected '{template_in_cache['name']}' for ID {template_id}, but got '{metadata['name']}' in analysis")
+                    
+                    # Override the metadata name to match the template cache
+                    metadata["name"] = template_in_cache["name"]
+                    logger.info(f"Corrected template name to '{template_in_cache['name']}' for ID {template_id}")
+                    
+                # Add additional template data from cache for consistency
+                if not metadata.get("url") and template_in_cache.get("url"):
+                    metadata["url"] = template_in_cache["url"]
+                if not metadata.get("box_count") and template_in_cache.get("box_count"):
+                    metadata["box_count"] = template_in_cache["box_count"]
+            
             # Update metadata
             self.custom_metadata[template_id] = metadata
             
@@ -418,3 +445,57 @@ Format your response as a JSON structure with these keys: name, description, for
             logger.error(f"Error loading custom metadata: {str(e)}")
         
         return {} 
+    
+    def verify_template_metadata_cache(self) -> int:
+        """
+        Verify all templates in the metadata cache to ensure they match their corresponding
+        entries in the templates cache, and repair any inconsistencies found.
+        
+        Returns:
+            Number of templates that were repaired
+        """
+        if not self.custom_metadata or not self.templates_cache.get("templates"):
+            logger.warning("Cannot verify metadata cache: either custom metadata or templates cache is empty")
+            return 0
+            
+        repairs_count = 0
+        templates_by_id = {str(t["id"]): t for t in self.templates_cache.get("templates", [])}
+        
+        for template_id, metadata in list(self.custom_metadata.items()):
+            # Skip if not in templates cache
+            if template_id not in templates_by_id:
+                logger.warning(f"Template ID {template_id} not found in templates cache")
+                continue
+                
+            template = templates_by_id[template_id]
+            
+            # Check for name mismatch
+            if metadata.get("name") and template.get("name") and metadata["name"] != template["name"]:
+                logger.warning(f"Template name mismatch: ID {template_id} has name '{metadata['name']}' in metadata but '{template['name']}' in templates cache")
+                
+                # Fix the metadata
+                old_name = metadata["name"]
+                metadata["name"] = template["name"]
+                repairs_count += 1
+                
+                logger.info(f"Repaired template {template_id}: renamed from '{old_name}' to '{template['name']}'")
+                
+                # Update metadata with correct template info
+                if not metadata.get("url") and template.get("url"):
+                    metadata["url"] = template["url"]
+                if not metadata.get("box_count") and template.get("box_count"):
+                    metadata["box_count"] = template["box_count"]
+                    
+                # Save the updated metadata
+                self.custom_metadata[template_id] = metadata
+        
+        # Save changes to file if any repairs were made
+        if repairs_count > 0:
+            try:
+                with open(self.custom_metadata_path, 'w') as f:
+                    json.dump(self.custom_metadata, f, indent=2)
+                logger.info(f"Saved {repairs_count} metadata repairs to {self.custom_metadata_path}")
+            except Exception as e:
+                logger.error(f"Error saving metadata repairs: {str(e)}")
+                
+        return repairs_count 
