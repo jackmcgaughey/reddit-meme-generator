@@ -21,6 +21,11 @@ def create_app(test_config=None):
     else:
         # Load the test config if passed in
         app.config.from_mapping(test_config)
+        
+    # Load API keys from environment variables
+    app.config['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
+    app.config['IMGFLIP_USERNAME'] = os.getenv('IMGFLIP_USERNAME')
+    app.config['IMGFLIP_PASSWORD'] = os.getenv('IMGFLIP_PASSWORD')
 
     # Ensure the upload and generated folders exist
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
