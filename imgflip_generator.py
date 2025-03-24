@@ -298,30 +298,43 @@ class ImgFlipGenerator:
         Returns:
             Prompt string for template analysis
         """
+        # Get the template name from cache if available
+        template_name = f"Template {template_id}"
+        for template in self.templates_cache.get("templates", []):
+            if str(template["id"]) == str(template_id):
+                template_name = template["name"]
+                break
+        
         prompt = f"""
-Analyze this meme template thoroughly (ID: {template_id}, Box Count: {box_count})
+Analyze this specific meme template: "{template_name}" (ID: {template_id}, Box Count: {box_count})
 URL: {template_url}
 
-I need detailed information about this specific meme template to generate appropriate content:
+IMPORTANT: Your analysis must be for THIS EXACT TEMPLATE shown in the URL, not any other meme. Look carefully at the image.
 
-1. Full Name: The complete/proper name of this meme template
+For the "{template_name}" meme template:
 
-2. Description: A detailed description of:
-   - What the image actually shows (people, objects, scene)
-   - The typical meaning or use of this meme in internet culture
-   - What makes this template recognizable or unique
+1. Full Name: Verify this is indeed the "{template_name}" meme before proceeding
+   - If this is not a "{template_name}" meme, please indicate that it appears to be something else
 
-3. Format: Explain precisely how this template with {box_count} text boxes is used:
-   - What specific content goes in each text area 
-   - The relationship between the text areas
-   - The specific format or pattern that makes this meme template work
-   - If each text area represents different speakers, perspectives, or concepts
+2. Description: Provide a detailed description focusing on:
+   - The exact visual elements visible in the image (people, objects, scene, expressions)
+   - The conventional meaning/usage of this specific template in internet meme culture
+   - What makes this template instantly recognizable or unique
 
-4. Example: Provide 1-2 examples of text that would typically be used in this meme, showing exactly what would go in each text area
+3. Format: Explain precisely how this template with {box_count} text boxes is conventionally used:
+   - What specific content typically appears in each text area (be explicit about each box)
+   - The relationship between the text areas (contrast, progression, cause-effect, etc.)
+   - The specific format or pattern that makes this meme template effective
+   - Whether each text area represents different perspectives, concepts, or time frames
 
-5. Tone: The emotional tone or context this meme is typically used in (humorous, ironic, sarcastic, etc.)
+4. Example: Provide 2 authentic examples of text that would typically be used in this meme
+   - Show exactly what text would go in each area
+   - Use examples that follow the established convention for this specific meme
 
-Your analysis must accurately reflect this specific template's actual usage in meme culture. 
+5. Tone: The emotional tone this meme is typically used with (humorous, ironic, sarcastic, etc.)
+   - Explain any subtleties in how the tone works with this specific template
+
+Your analysis must accurately reflect this specific template's actual usage in meme culture.
 Format your response as a JSON structure with these keys: name, description, format, example, tone
 """
         return prompt

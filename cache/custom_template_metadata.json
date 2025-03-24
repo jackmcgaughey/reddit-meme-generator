@@ -28,5 +28,43 @@
     "analysis_prompt": "\nAnalyze this meme template thoroughly (ID: 181913649, Box Count: 2)\nURL: https://i.imgflip.com/30b1gx.jpg\n\nI need detailed information about this specific meme template to generate appropriate content:\n\n1. Full Name: The complete/proper name of this meme template\n\n2. Description: A detailed description of:\n   - What the image actually shows (people, objects, scene)\n   - The typical meaning or use of this meme in internet culture\n   - What makes this template recognizable or unique\n\n3. Format: Explain precisely how this template with 2 text boxes is used:\n   - What specific content goes in each text area \n   - The relationship between the text areas\n   - The specific format or pattern that makes this meme template work\n   - If each text area represents different speakers, perspectives, or concepts\n\n4. Example: Provide 1-2 examples of text that would typically be used in this meme, showing exactly what would go in each text area\n\n5. Tone: The emotional tone or context this meme is typically used in (humorous, ironic, sarcastic, etc.)\n\nYour analysis must accurately reflect this specific template's actual usage in meme culture. \nFormat your response as a JSON structure with these keys: name, description, format, example, tone\n",
     "url": "https://i.imgflip.com/30b1gx.jpg",
     "box_count": 2
+  },
+  "87743020": {
+    "name": "Two Buttons",
+    "description": {
+      "visual_elements": "The image features a three-panel sequence. The top panel depicts a character, commonly known as 'Sweating Man' from the video game 'Megaman,' who is visibly stressed, sweating, and anxious with his hand hovering between two large red buttons. The middle and bottom panels each have one of the buttons labeled. The setting is minimalistic, focusing on the character's arm pointing at the buttons, capturing the character's dilemma and emotional strain while making a decision.",
+      "conventional_meaning": "This meme template is widely used to depict someone who is facing a difficult decision between two equally challenging or conflicting options. It's meant to humorously represent the stress and indecision involved in making a tough choice.",
+      "recognizable_features": "This template is instantly recognizable due to the cartoonish style of the sweating man and the two large red buttons. The anxious expression and exaggerated sweating emphasize the theme of overwhelming indecision."
+    },
+    "format": {
+      "text_areas": {
+        "top_panel": "Typically features a label or description for the person or entity struggling with a decision. This serves to set the context or highlight the subject facing the dilemma.",
+        "middle_panel": "This area contains text labeling one of the two choices or options. It is one of the focuses of the decision-making process.",
+        "bottom_panel": "Similar to the middle panel, this area labels the alternative choice, juxtaposed against the option in the middle panel, highlighting the dilemma."
+      },
+      "relationship": "The relationship between the text areas is one of contrast or dichotomy, where the subject must choose between two mutually exclusive options. The humor often stems from the exaggeration of the difficulty in choosing between two trivial or absurdly specific scenarios.",
+      "format_pattern": "The effectiveness of the meme lies in its simplicity and universal relatability to decision-making, using stark, exaggerated examples for comedic effect. The text in each area plays off each other, making each choice seem equally pressing and problematic."
+    },
+    "example": [
+      {
+        "top_panel": "Procrastinating student",
+        "middle_panel": "Finish assignment on time",
+        "bottom_panel": "Watch another episode of a show"
+      },
+      {
+        "top_panel": "Employee on the last working day before vacation",
+        "middle_panel": "Finish reports",
+        "bottom_panel": "Leave early and avoid all emails"
+      }
+    ],
+    "tone": {
+      "emotional_tone": "The tone is typically humorous and can also encompass irony or sarcasm. The absurdity of the depicted indecision often highlights the human tendency to overthink or stress over minor choices, which is humorously exaggerated, making it relatable and funny to a broad audience."
+    },
+    "analyzed": true,
+    "template_id": "87743020",
+    "template_url": "https://i.imgflip.com/1g8my4.jpg",
+    "analysis_prompt": "\nAnalyze this specific meme template: \"Two Buttons\" (ID: 87743020, Box Count: 3)\nURL: https://i.imgflip.com/1g8my4.jpg\n\nIMPORTANT: Your analysis must be for THIS EXACT TEMPLATE shown in the URL, not any other meme. Look carefully at the image.\n\nFor the \"Two Buttons\" meme template:\n\n1. Full Name: Verify this is indeed the \"Two Buttons\" meme before proceeding\n   - If this is not a \"Two Buttons\" meme, please indicate that it appears to be something else\n\n2. Description: Provide a detailed description focusing on:\n   - The exact visual elements visible in the image (people, objects, scene, expressions)\n   - The conventional meaning/usage of this specific template in internet meme culture\n   - What makes this template instantly recognizable or unique\n\n3. Format: Explain precisely how this template with 3 text boxes is conventionally used:\n   - What specific content typically appears in each text area (be explicit about each box)\n   - The relationship between the text areas (contrast, progression, cause-effect, etc.)\n   - The specific format or pattern that makes this meme template effective\n   - Whether each text area represents different perspectives, concepts, or time frames\n\n4. Example: Provide 2 authentic examples of text that would typically be used in this meme\n   - Show exactly what text would go in each area\n   - Use examples that follow the established convention for this specific meme\n\n5. Tone: The emotional tone this meme is typically used with (humorous, ironic, sarcastic, etc.)\n   - Explain any subtleties in how the tone works with this specific template\n\nYour analysis must accurately reflect this specific template's actual usage in meme culture.\nFormat your response as a JSON structure with these keys: name, description, format, example, tone\n",
+    "url": "https://i.imgflip.com/1g8my4.jpg",
+    "box_count": 3
   }
 }
