@@ -21,6 +21,12 @@ A simple yet powerful tool to discover, generate, and customize memes from Reddi
   - Each genre has a unique AI personality and style
   - Enhanced music-focused image search for relevant results
   - Smart filtering to ensure images don't already contain text
+- **ImgFlip Template Integration**:
+  - Browse and search popular ImgFlip meme templates
+  - Use classic meme formats like Drake, Distracted Boyfriend, Two Buttons, and more
+  - AI-powered template analysis for understanding meme context and proper usage
+  - Simplified creation flow that handles text positioning automatically
+  - Custom template mappings to ensure correct text placement for complex templates
 - **Enhanced Media Support**:
   - Support for multiple image formats (JPG, JPEG, PNG, GIF, BMP, WebP, TIFF, SVG)
   - Automatic format conversion for compatibility
@@ -79,6 +85,18 @@ The application requires Reddit API credentials to function:
 6. Add these credentials to your local `config.json` file or provide them when prompted at first launch
 
 The application will prompt you to enter these credentials on first launch.
+
+### ImgFlip API Setup (Optional, for template features)
+
+To use the ImgFlip template features:
+
+1. Create an account at [ImgFlip](https://imgflip.com)
+2. Add your username and password to the `.env` file:
+   ```
+   IMGFLIP_USERNAME=your_username_here
+   IMGFLIP_PASSWORD=your_password_here
+   ```
+3. You can also enter these credentials within the application when you first use the template features
 
 ### OpenAI API Setup (Optional, for AI features)
 
@@ -152,6 +170,28 @@ The application now includes enhanced image searching capabilities:
 - **Margin Control**: Text properly positioned to stay within image boundaries
 - **Readable Captions**: Text includes outlines to ensure visibility against any background
 
+### Template-Based Meme Generation
+
+The application now supports using ImgFlip templates for creating memes:
+
+- **Browse Templates**: Browse the most popular meme templates from ImgFlip
+- **Search Templates**: Find specific templates by name
+- **Filter by Box Count**: Filter templates by the number of text boxes
+- **Template Analysis**: View detailed analysis of each template's context and proper usage
+- **AI-Generated Content**: Generate meme text appropriate for the specific template's format
+- **Custom Box Mappings**: Special templates like "Two Buttons" and "Distracted Boyfriend" have custom mappings to ensure text is placed correctly
+- **Simplified Interface**: Create memes without worrying about box placement - the app handles the complexity for you
+
+### Template Analysis Features
+
+Each analyzed template includes:
+
+- **Description**: Detailed description of the template's visual elements and cultural context
+- **Format**: Explanation of how the template is conventionally used
+- **Box Placement Guide**: Visual guide showing where each text box appears on the template
+- **Examples**: Sample memes showing typical usage
+- **Tone**: Description of the emotional tone the meme is typically used with
+
 ## Project Structure
 
 - `main.py` - Main application entry point
@@ -172,6 +212,15 @@ This project is open source under the MIT license.
 This tool is for educational and personal use. Please respect copyright and Reddit's terms of service when using and sharing memes.
 
 ## Recent Updates
+
+### v1.4.0 (April 2025)
+- Added ImgFlip template integration for creating memes using popular templates
+- Implemented AI-powered template analysis to understand meme context
+- Created template metadata system to store and recall template analysis
+- Added custom box mappings for special templates (Two Buttons, Distracted Boyfriend, etc.)
+- Built browsing, searching, and filtering for meme templates
+- Improved UI for template-based meme creation
+- Fixed template box count issues for special templates like UNO Draw 25 Cards
 
 ### v1.3.1 (March 2025)
 - Improved text filtering to ensure cleaner images without captions or text
