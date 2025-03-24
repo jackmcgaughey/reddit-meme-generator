@@ -121,13 +121,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 <a href="{{ url_for('main.check_template_metadata', process='true', force='true', limit=20) }}" class="btn btn-warning">Regenerate 20 Templates Metadata</a>
                 <a href="{{ url_for('main.check_template_metadata', process='true', all='true', force='true') }}" class="btn btn-danger">Regenerate All Metadata</a>
             </div>
-            <div class="mt-3">
-                <p><strong>Fix template-description mismatches:</strong></p>
-                <a href="{{ url_for('main.sync_template_metadata') }}" class="btn btn-primary btn-lg w-100">
-                    <i class="bi bi-wrench"></i> Repair Template-Description Mismatches
-                </a>
-                <small class="text-muted mt-2 d-block">Use this if template images and descriptions don't match correctly.</small>
-            </div>
         </div>
     </div>
     
@@ -196,48 +189,90 @@ document.addEventListener('DOMContentLoaded', function() {
                 <img src="{{ template.url }}" class="card-img-top template-image" alt="{{ template.name }}">
                 <div class="card-body">
                     <h5 class="card-title">{{ template.name }}</h5>
+                    <small class="text-muted">ID: {{ template.id }}</small>
                     
                     {% set metadata = get_template_metadata(template.id) %}
                     {% if metadata and metadata.get('description') and metadata.get('description') != "A popular meme template." %}
-                    <div class="template-metadata">
+                    <div class="template-metadata mt-2">
                         {% if metadata.get('has_mismatch') %}
-                        <div class="alert alert-danger mb-2">
+                        <div class="alert alert-danger mb-2 border border-dark">
                             {% if metadata.description.get('mismatch_warning') %}
                                 {{ metadata.description.get('mismatch_warning')|safe }}
                             {% else %}
                                 ⚠️ Description mismatch detected. Please use the "Repair" button above.
                             {% endif %}
+                            
+                            <div class="mt-2 p-2 bg-light text-dark rounded">
+                                <small>
+                                    <strong>Template Name:</strong> "{{ template.name }}"<br>
+                                    <strong>Metadata Name:</strong> "{{ metadata.get('name', 'Unknown') }}"
+                                </small>
+                            </div>
                         </div>
                         {% endif %}
                         
-                        {% if metadata.description is mapping %}
-                            {% if metadata.description.get('image') %}
-                            <p class="card-text"><strong>Description:</strong> {{ metadata.description.image }}</p>
-                            {% elif metadata.description.get('text') %}
-                            <p class="card-text"><strong>Description:</strong> {{ metadata.description.text }}</p>
-                            {% endif %}
-                            
-                            {% if metadata.description.get('meaning') %}
-                            <p class="card-text"><small><strong>Meaning:</strong> {{ metadata.description.meaning }}</small></p>
-                            {% endif %}
-                        {% else %}
-                            <p class="card-text"><strong>Description:</strong> {{ metadata.description }}</p>
-                        {% endif %}
-                        
-                        {% if metadata.get('format') %}
-                            {% if metadata.format is mapping %}
-                                {% if metadata.format.get('usage') %}
-                                <p class="card-text"><small><strong>Format:</strong> {{ metadata.format.usage }}</small></p>
-                                {% elif metadata.format.get('box_1') %}
-                                <p class="card-text"><small><strong>Format:</strong> {{ metadata.format.box_1 }}</small></p>
+                        <div class="p-2 {% if metadata.get('has_mismatch') %}bg-warning text-dark{% else %}bg-light text-dark{% endif %} rounded">
+                            {% if metadata.description is mapping %}
+                                {% if metadata.description.get('image') %}
+                                <p class="card-text mb-1"><strong>Description:</strong> {{ metadata.description.image|truncate(150) }}</p>
+                                {% elif metadata.description.get('text') %}
+                                <p class="card-text mb-1"><strong>Description:</strong> {{ metadata.description.text|truncate(150) }}</p>
+                                {% elif metadata.description.get('imageDetails') %}
+                                <p class="card-text mb-1"><strong>Description:</strong> {{ metadata.description.imageDetails|truncate(150) }}</p>
+                                {% elif metadata.description.get('image_details') %}
+                                <p class="card-text mb-1"><strong>Description:</strong> {{ metadata.description.image_details|truncate(150) }}</p>
+                                {% endif %}
+                                
+                                {% if metadata.description.get('meaning') or metadata.description.get('typicalMeaning') or metadata.description.get('typical_meaning') or metadata.description.get('culturalMeaning') %}
+                                <p class="card-text mb-1"><small><strong>Meaning:</strong> 
+                                    {{ metadata.description.get('meaning', metadata.description.get('typicalMeaning', metadata.description.get('typical_meaning', metadata.description.get('culturalMeaning', '')))) | truncate(150) }}
+                                </small></p>
                                 {% endif %}
                             {% else %}
-                                <p class="card-text"><small><strong>Format:</strong> {{ metadata.format }}</small></p>
+                                <p class="card-text mb-1"><strong>Description:</strong> {{ metadata.description|truncate(150) }}</p>
                             {% endif %}
+                        </div>
+                        
+                        {% if metadata.get('format') %}
+                        <div class="mt-2 p-2 bg-light text-dark rounded">
+                            {% if metadata.format is mapping %}
+                                {% if metadata.format.get('usage') %}
+                                <p class="card-text mb-1"><small><strong>Format:</strong> {{ metadata.format.usage|truncate(100) }}</small></p>
+                                {% elif metadata.format.get('box_1') %}
+                                <p class="card-text mb-1"><small><strong>Format:</strong> {{ metadata.format.box_1|truncate(100) }}</small></p>
+                                {% elif metadata.format.get('text_box_1') %}
+                                <p class="card-text mb-1"><small><strong>Format:</strong> {{ metadata.format.text_box_1|truncate(100) }}</small></p>
+                                {% elif metadata.format.get('textBox1Content') %}
+                                <p class="card-text mb-1"><small><strong>Format:</strong> {{ metadata.format.textBox1Content|truncate(100) }}</small></p>
+                                {% elif metadata.format.get('content_in_text_areas') %}
+                                <p class="card-text mb-1"><small><strong>Format:</strong> {{ metadata.format.content_in_text_areas|truncate(100) }}</small></p>
+                                {% endif %}
+                            {% else %}
+                                <p class="card-text mb-1"><small><strong>Format:</strong> {{ metadata.format|truncate(100) }}</small></p>
+                            {% endif %}
+                        </div>
                         {% endif %}
                         
                         {% if metadata.get('tone') %}
-                        <p class="card-text"><small><strong>Tone:</strong> {{ metadata.tone }}</small></p>
+                        <div class="mt-2 p-2 bg-light text-dark rounded">
+                            <p class="card-text mb-0"><small><strong>Tone:</strong> {{ metadata.tone|truncate(100) }}</small></p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if metadata.get('example') %}
+                        <div class="mt-2">
+                            <p class="mb-1"><small><strong>Example text:</strong></small></p>
+                            <div class="p-2 bg-light text-dark rounded">
+                                <small>
+                                {% if metadata.example is iterable and metadata.example is not string %}
+                                    {% set example = metadata.example[0] if metadata.example|length > 0 else {} %}
+                                    {% for key, value in example.items() if example is mapping %}
+                                        <div><strong>{{ key }}:</strong> {{ value }}</div>
+                                    {% endfor %}
+                                {% endif %}
+                                </small>
+                            </div>
+                        </div>
                         {% endif %}
                     </div>
                     {% else %}
