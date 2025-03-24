@@ -117,6 +117,8 @@ document.addEventListener('DOMContentLoaded', function() {
             <p>Make sure all templates have proper descriptions for best results:</p>
             <a href="{{ url_for('main.check_template_metadata') }}" class="btn btn-primary">Check Template Metadata</a>
             <a href="{{ url_for('main.check_template_metadata', process='true', limit=10) }}" class="btn btn-success">Process 10 Missing Templates</a>
+            <a href="{{ url_for('main.check_template_metadata', process='true', force='true', limit=20) }}" class="btn btn-warning">Regenerate 20 Templates Metadata</a>
+            <a href="{{ url_for('main.check_template_metadata', process='true', all='true', force='true') }}" class="btn btn-danger">Regenerate All Metadata</a>
         </div>
     </div>
     

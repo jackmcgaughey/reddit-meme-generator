@@ -1183,6 +1183,27 @@ def inject_template_metadata():
     """
     def get_template_metadata(template_id):
         """Get metadata for a template by ID"""
-        return imgflip_api.get_template_metadata(template_id)
+        metadata = imgflip_api.get_template_metadata(template_id)
+        
+        # Debug log the template ID and metadata name to verify correct matching
+        if metadata and 'name' in metadata:
+            logger.debug(f"Template ID: {template_id}, Metadata Name: {metadata.get('name')}")
+        
+        # Verify that the metadata is for the correct template ID
+        # This ensures descriptions match the templates they belong to
+        template = imgflip_api.get_template_by_id(template_id)
+        if template and metadata and 'name' in metadata and 'name' in template:
+            # If names don't match, there might be an issue with the metadata
+            template_name = template['name']
+            metadata_name = metadata.get('name')
+            
+            if template_name != metadata_name:
+                logger.warning(f"Metadata mismatch: Template {template_id} name is '{template_name}' but metadata name is '{metadata_name}'")
+                
+                # Force metadata regeneration if there's a mismatch
+                # This will ensure the description matches the template
+                return None
+                
+        return metadata
     
     return dict(get_template_metadata=get_template_metadata) 
