@@ -33,6 +33,9 @@
                         <p><strong>Dimensions:</strong> {{ template.width }}×{{ template.height }}</p>
                         {% if template.analyzed %}
                             <p class="text-success"><i class="bi bi-check-circle-fill"></i> This template has been analyzed for context</p>
+                            <a href="{{ url_for('main.analyze_template', template_id=template.id) }}" class="btn btn-outline-success btn-sm">
+                                <i class="bi bi-arrow-repeat"></i> Regenerate Analysis
+                            </a>
                         {% else %}
                             <p class="text-warning"><i class="bi bi-exclamation-triangle-fill"></i> This template has not been analyzed yet</p>
                             <a href="{{ url_for('main.analyze_template', template_id=template.id) }}" class="btn btn-outline-primary">Analyze Template</a>
@@ -125,6 +128,100 @@
                     {% endif %}
                 </div>
             </div>
+
+            <!-- After the "Metadata" section and before the "Analysis" section -->
+            {% if template.get('analyzed', False) %}
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-map-marker-alt mr-2"></i> Box Placement Guide
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle mr-2"></i> When creating a meme with this template, pay attention to the box order below:
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="text-center mb-3">
+                                <img src="{{ template.url }}" alt="{{ template.name }}" class="img-fluid template-image-guide" style="max-height: 300px;">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="box-placement-guide">
+                                <h5>Box Order:</h5>
+                                
+                                {% if template.id == "87743020" %}
+                                <!-- Two Buttons Template -->
+                                <div class="alert alert-warning">
+                                    <strong>Note:</strong> For this template, the boxes are not in sequential order! Box 1 and Box 2 are switched in the API.
+                                </div>
+                                <ul class="list-group">
+                                    <li class="list-group-item"><strong>Box 1:</strong> Character description (top of image)</li>
+                                    <li class="list-group-item"><strong>Box 2:</strong> Left/Bottom button text</li>
+                                    <li class="list-group-item"><strong>Box 3:</strong> Right/Middle button text</li>
+                                </ul>
+                                
+                                {% elif template.id == "181913649" %}
+                                <!-- Drake Template -->
+                                <ul class="list-group">
+                                    <li class="list-group-item"><strong>Box 1:</strong> Top panel - The option Drake is rejecting</li>
+                                    <li class="list-group-item"><strong>Box 2:</strong> Bottom panel - The option Drake prefers</li>
+                                </ul>
+                                
+                                {% elif template.id == "112126428" %}
+                                <!-- Distracted Boyfriend -->
+                                <div class="alert alert-warning">
+                                    <strong>Note:</strong> For this template, boxes are not in the visual order you might expect!
+                                </div>
+                                <ul class="list-group">
+                                    <li class="list-group-item"><strong>Box 1:</strong> The boyfriend (who is being distracted)</li>
+                                    <li class="list-group-item"><strong>Box 2:</strong> The girlfriend (who is upset)</li>
+                                    <li class="list-group-item"><strong>Box 3:</strong> The other woman (who is distracting)</li>
+                                </ul>
+                                
+                                {% elif template.id == "217743513" %}
+                                <!-- UNO Draw 25 Cards -->
+                                <div class="alert alert-info">
+                                    <strong>Note:</strong> For this template, only one text box is needed.
+                                </div>
+                                <ul class="list-group">
+                                    <li class="list-group-item"><strong>Box 1:</strong> The action someone would rather avoid (left card)</li>
+                                </ul>
+                                
+                                {% elif template.box_count > 1 %}
+                                <!-- Generic template with multiple boxes -->
+                                <ul class="list-group">
+                                    {% for i in range(template.box_count) %}
+                                    <li class="list-group-item"><strong>Box {{ i+1 }}:</strong> 
+                                        {% if template.get('box_placement') and template.box_placement.get(i|string) %}
+                                            {{ template.box_placement.get(i|string) }}
+                                        {% else %}
+                                            Text area #{{ i+1 }}
+                                        {% endif %}
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                                {% else %}
+                                <!-- Single box template -->
+                                <ul class="list-group">
+                                    <li class="list-group-item"><strong>Box 1:</strong> Main text</li>
+                                </ul>
+                                {% endif %}
+                                
+                                {% if template.get('box_placement') and template.box_placement %}
+                                <div class="mt-3">
+                                    <h5>Additional Box Placement Information:</h5>
+                                    <p>{{ template.box_placement|safe }}</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -144,33 +241,37 @@
                     <input type="hidden" name="template_name" value="{{ template.name }}">
                     <input type="hidden" name="box_count" value="{{ template.box_count }}">
                     
-                    <div class="mb-3">
-                        <label for="contentType" class="form-label">What would you like to create?</label>
-                        <select class="form-select" id="contentType" name="content_type">
-                            <option value="band">Band Meme</option>
-                            <option value="genre">Music Genre Meme</option>
+                    <div class="form-group mb-3">
+                        <label for="contentType"><strong>Content Type:</strong></label>
+                        <select class="form-control" id="contentType" name="content_type">
+                            <option value="band">Band</option>
+                            <option value="genre">Genre</option>
                         </select>
                     </div>
-                    
-                    <div id="bandInputGroup" class="mb-3">
-                        <label for="bandName" class="form-label">Band Name</label>
+
+                    <div id="bandNameGroup" class="form-group mb-3">
+                        <label for="bandName"><strong>Band Name:</strong></label>
                         <input type="text" class="form-control" id="bandName" name="band_name" placeholder="Enter a band name">
                     </div>
-                    
-                    <div id="genreInputGroup" class="mb-3 d-none">
-                        <label for="genre" class="form-label">Music Genre</label>
-                        <select class="form-select" id="genre" name="genre">
+
+                    <div id="genreGroup" class="form-group d-none mb-3">
+                        <label for="genre"><strong>Genre:</strong></label>
+                        <select class="form-control" id="genre" name="genre">
                             <option value="60s rock">60s Rock</option>
                             <option value="jazz">Jazz</option>
                             <option value="90s rock">90s Rock</option>
-                            <option value="rave">Rave/Electronic</option>
+                            <option value="rave">Rave</option>
                             <option value="2010s pop">2010s Pop</option>
                         </select>
                     </div>
+
+                    <div class="form-group mb-3">
+                        <label for="context"><strong>Additional Context (Optional):</strong></label>
+                        <textarea class="form-control" id="context" name="context" rows="3" placeholder="Add any additional context for the AI to consider when generating the meme"></textarea>
+                    </div>
                     
-                    <div class="mb-3">
-                        <label for="additionalContext" class="form-label">Additional Context (Optional)</label>
-                        <textarea class="form-control" id="additionalContext" name="context" rows="2" placeholder="Add any additional context or specifics you'd like to include"></textarea>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> The AI will automatically generate appropriate text for this template based on your selections above.
                     </div>
                 </form>
             </div>
@@ -188,16 +289,16 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Toggle band/genre input groups
         const contentTypeSelect = document.getElementById('contentType');
-        const bandInputGroup = document.getElementById('bandInputGroup');
-        const genreInputGroup = document.getElementById('genreInputGroup');
+        const bandNameGroup = document.getElementById('bandNameGroup');
+        const genreGroup = document.getElementById('genreGroup');
         
         contentTypeSelect.addEventListener('change', function() {
             if (this.value === 'band') {
-                bandInputGroup.classList.remove('d-none');
-                genreInputGroup.classList.add('d-none');
+                bandNameGroup.classList.remove('d-none');
+                genreGroup.classList.add('d-none');
             } else {
-                bandInputGroup.classList.add('d-none');
-                genreInputGroup.classList.remove('d-none');
+                bandNameGroup.classList.add('d-none');
+                genreGroup.classList.remove('d-none');
             }
         });
         

@@ -54,6 +54,40 @@ class ImgFlipGenerator:
         self.templates_cache = self._load_templates_cache()
         self.custom_metadata = self._load_custom_metadata()
         
+        # Define known template box mappings for common templates
+        # These mappings override the default box ordering to ensure correct placement
+        # Format: template_id: {UI box order: API box number}
+        self.template_box_mappings = {
+            # Two Buttons template - box 0 should be the top text, box 1 and 2 are the button labels
+            "87743020": {
+                0: 0,  # Top text about the character
+                1: 2,  # First button label (bottom button)
+                2: 1,  # Second button label (middle button)
+            },
+            # Drake Hotline Bling - standard order
+            "181913649": {
+                0: 0,  # Top panel text (rejected option)
+                1: 1,  # Bottom panel text (preferred option)
+            },
+            # Distracted Boyfriend - text out of order
+            "112126428": {
+                0: 1,  # Boyfriend
+                1: 0,  # Girlfriend
+                2: 2,  # Other woman
+            },
+            # Expanding Brain - text from simple (top) to complex (bottom)
+            "93895088": {
+                0: 0,  # Smallest brain
+                1: 1,  # Larger brain
+                2: 2,  # Even larger brain
+                3: 3,  # Cosmic brain
+            },
+            # UNO Draw 25 Cards - only one text box needed (for the action)
+            "217743513": {
+                0: 0,  # The action to avoid (left side)
+            }
+        }
+        
         # Verify template metadata cache integrity
         repairs = self.verify_template_metadata_cache()
         if repairs > 0:
@@ -147,6 +181,22 @@ class ImgFlipGenerator:
             "password": self.password
         }
         
+        # Apply template-specific box mappings if available
+        if isinstance(texts, list) and template_id in self.template_box_mappings:
+            # Create a new array with the correct mapping
+            mapped_texts = [""] * len(texts)  # Initialize with empty strings
+            mapping = self.template_box_mappings[template_id]
+            
+            for ui_box, api_box in mapping.items():
+                if ui_box < len(texts):
+                    # Get text from the UI position and assign it to the correct API position
+                    text_content = texts[ui_box]
+                    if api_box < len(mapped_texts):
+                        mapped_texts[api_box] = text_content
+            
+            logger.info(f"Applied template-specific box mapping for template {template_id}")
+            texts = mapped_texts
+        
         # Process text inputs
         if isinstance(texts, list):
             # Handle list format by converting to box format
@@ -210,20 +260,34 @@ class ImgFlipGenerator:
         Returns:
             Dictionary of template metadata and analysis
         """
+        result = {}
+        
         # Check in custom metadata first
         if template_id in self.custom_metadata:
-            return self.custom_metadata[template_id]
+            result = self.custom_metadata[template_id]
             
-        # Check in templates cache
-        for template in self.templates_cache.get("templates", []):
-            if str(template["id"]) == str(template_id):
-                return template
-                
-        # Return empty metadata
-        return {
-            "name": f"Template {template_id}",
-            "box_count": 2
-        }
+        # Check in templates cache if not found in custom metadata
+        if not result:
+            for template in self.templates_cache.get("templates", []):
+                if str(template["id"]) == str(template_id):
+                    result = template
+                    break
+                    
+        # If still empty, return a default dictionary
+        if not result:
+            result = {
+                "name": f"Template {template_id}",
+                "box_count": 2
+            }
+            
+        # Override box_count with template_box_mappings if available
+        if template_id in self.template_box_mappings:
+            # Use the number of entries in the mapping to determine the box count
+            mapping_box_count = len(self.template_box_mappings[template_id])
+            result["box_count"] = mapping_box_count
+            logger.debug(f"Overriding box count for template {template_id} to {mapping_box_count} based on template mapping")
+            
+        return result
         
     def save_template_metadata(self, template_id: str, metadata: Dict[str, Any]) -> bool:
         """
@@ -323,19 +387,28 @@ For the "{template_name}" meme template:
 
 3. Format: Explain precisely how this template with {box_count} text boxes is conventionally used:
    - What specific content typically appears in each text area (be explicit about each box)
+   - The exact position of each text box (top, bottom, left, right, middle, etc.)
+   - The order in which text boxes are typically assigned in meme generators (Box 0, Box 1, etc.)
    - The relationship between the text areas (contrast, progression, cause-effect, etc.)
    - The specific format or pattern that makes this meme template effective
    - Whether each text area represents different perspectives, concepts, or time frames
 
-4. Example: Provide 2 authentic examples of text that would typically be used in this meme
+4. Box Placement: For each box, specify:
+   - EXACT position on the image (top-left, bottom-center, etc.)
+   - What this specific box should be used for
+   - If this is a multi-panel meme, which panel contains this box
+   - The order in which users should fill these boxes when creating a meme
+
+5. Example: Provide 2 authentic examples of text that would typically be used in this meme
    - Show exactly what text would go in each area
    - Use examples that follow the established convention for this specific meme
+   - Explicitly indicate which text goes in which position (e.g., "Box 1 (top): text")
 
-5. Tone: The emotional tone this meme is typically used with (humorous, ironic, sarcastic, etc.)
+6. Tone: The emotional tone this meme is typically used with (humorous, ironic, sarcastic, etc.)
    - Explain any subtleties in how the tone works with this specific template
 
 Your analysis must accurately reflect this specific template's actual usage in meme culture.
-Format your response as a JSON structure with these keys: name, description, format, example, tone
+Format your response as a JSON structure with these keys: name, description, format, box_placement, example, tone
 """
         return prompt
     
