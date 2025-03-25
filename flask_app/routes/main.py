@@ -83,6 +83,11 @@ def meme_templates():
     Render the meme templates browsing page.
     This shows templates from ImgFlip that can be used for meme generation.
     """
+    # Verify metadata integrity
+    repairs = imgflip_generator.verify_template_metadata_cache()
+    if repairs > 0:
+        flash(f"Fixed {repairs} template metadata mismatches", "info")
+    
     # Get templates from ImgFlip API
     templates = imgflip_generator.get_popular_templates()
     
@@ -107,12 +112,8 @@ def meme_templates():
 def analyze_template(template_id):
     """
     Analyze a specific template to understand its context and usage.
+    This can be used for initial analysis or to regenerate analysis.
     """
-    # Check if template is already analyzed
-    if imgflip_generator.is_template_analyzed(template_id):
-        flash('Template already analyzed')
-        return redirect(url_for('main.meme_templates'))
-    
     # Find the template data
     templates = imgflip_generator.get_popular_templates()
     template = None
@@ -124,6 +125,9 @@ def analyze_template(template_id):
     if not template:
         flash('Template not found')
         return redirect(url_for('main.meme_templates'))
+    
+    # Check if template is already analyzed
+    already_analyzed = imgflip_generator.is_template_analyzed(template_id)
     
     # Create analysis prompt
     prompt = imgflip_generator.create_template_analysis_prompt(
@@ -139,7 +143,10 @@ def analyze_template(template_id):
         # Save analysis to metadata cache
         if analysis and analysis.get('analyzed', False):
             imgflip_generator.save_template_metadata(template_id, analysis)
-            flash('Template analysis completed successfully')
+            if already_analyzed:
+                flash('Template analysis regenerated successfully')
+            else:
+                flash('Template analysis completed successfully')
         else:
             flash('Template analysis failed')
             
@@ -581,6 +588,7 @@ def generate_template_meme():
         genre = request.form.get('genre', '')
         context = request.form.get('context', '')
         regenerate_text_only = request.form.get('regenerate_text_only', 'false') == 'true'
+        show_prompts = request.form.get('show_prompts', '') == 'on'
     else:
         template_id = request.args.get('template_id', '')
         template_url = request.args.get('template_url', '')
@@ -591,6 +599,7 @@ def generate_template_meme():
         genre = request.args.get('genre', '')
         context = request.args.get('context', '')
         regenerate_text_only = request.args.get('regenerate_text_only', 'false') == 'true'
+        show_prompts = request.args.get('show_prompts', '') == 'on'
     
     # Validate input
     try:
@@ -621,8 +630,17 @@ def generate_template_meme():
     # Get template metadata and check if it's been analyzed
     template_metadata = imgflip_generator.get_template_metadata(template_id)
     
-    # If template isn't analyzed or if forced regeneration is requested, analyze it
-    if not template_metadata.get('analyzed', False) or regenerate_text_only:
+    # Use the box count from template metadata if available
+    if 'box_count' in template_metadata:
+        box_count = template_metadata['box_count']
+        logger.info(f"Using box count {box_count} from template metadata for template {template_id}")
+    
+    # Initialize variables to store prompts if debugging is enabled
+    template_analysis_prompt = ""
+    generation_prompt = ""
+    
+    # Only analyze the template if it hasn't been analyzed before
+    if not template_metadata.get('analyzed', False):
         # Create analysis prompt
         prompt = imgflip_generator.create_template_analysis_prompt(
             template_id=template_id,
@@ -630,12 +648,16 @@ def generate_template_meme():
             template_url=template_url
         )
         
+        # Store for debugging if requested
+        if show_prompts:
+            template_analysis_prompt = prompt
+        
         try:
             # Analyze the template
             analysis = ai_generator.analyze_meme_template(prompt)
             
-            # Save analysis to metadata cache if successful and we're not just regenerating text
-            if analysis and analysis.get('analyzed', False) and not regenerate_text_only:
+            # Save analysis to metadata cache if successful
+            if analysis and analysis.get('analyzed', False):
                 imgflip_generator.save_template_metadata(template_id, analysis)
                 template_metadata = analysis
                 logger.info(f"Generated new template analysis for {template_id}")
@@ -644,26 +666,33 @@ def generate_template_meme():
             flash(f"Error analyzing template: {str(e)}")
             return redirect(url_for('main.template_details', template_id=template_id))
     
-    # If we're regenerating text only, use the existing template metadata
-    
     # Generate template-specific meme text
     band_or_genre = band_name if content_type == 'band' else genre
     is_band = content_type == 'band'
     
     try:
-        meme_texts = ai_generator.generate_template_specific_meme_text(
+        generation_result = ai_generator.generate_template_specific_meme_text(
             template_analysis=template_metadata,
             band_or_genre=band_or_genre,
             context=context,
-            is_band=is_band
+            is_band=is_band,
+            return_prompt=show_prompts
         )
         
+        # If debugging is enabled, the result will include both text and prompt
+        if show_prompts and isinstance(generation_result, tuple):
+            meme_texts, generation_prompt = generation_result
+        else:
+            meme_texts = generation_result
+            
         # Ensure we have enough text items for the box count
         while len(meme_texts) < box_count:
             meme_texts.append("")
         
         # Truncate to the required number of boxes
-        meme_texts = meme_texts[:box_count]
+        if len(meme_texts) > box_count:
+            logger.warning(f"AI generated {len(meme_texts)} texts but template only has {box_count} boxes. Truncating.")
+            meme_texts = meme_texts[:box_count]
         
         logger.info(f"Generated template-specific text for {template_name}: {meme_texts}")
     except Exception as e:
@@ -698,8 +727,20 @@ def generate_template_meme():
                 "band_or_genre": band_or_genre,
                 "context": context,
                 "box_count": box_count,
-                "generation_time": time.strftime("%Y-%m-%d %H:%M:%S")
+                "generation_time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "show_prompts": show_prompts
             }
+            
+            # Add debug information if requested
+            if show_prompts:
+                meme_info["template_analysis_prompt"] = template_analysis_prompt
+                meme_info["generation_prompt"] = generation_prompt
+                
+                # Add box mapping information for debugging
+                if "original_texts" in result:
+                    meme_info["original_texts"] = result["original_texts"]
+                if "mapped_texts" in result:
+                    meme_info["mapped_texts"] = result["mapped_texts"]
             
             # Render the template meme result page
             return render_template('template_meme_result.html', meme=meme_info)

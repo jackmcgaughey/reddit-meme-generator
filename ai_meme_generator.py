@@ -13,7 +13,7 @@ import base64
 import requests
 import re
 from io import BytesIO
-from typing import Tuple, Optional, Dict, Any, List
+from typing import Tuple, Optional, Dict, Any, List, Union
 from PIL import Image
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -69,6 +69,19 @@ class AIMemeGenerator:
             logger.error("OpenAI client not initialized. Cannot analyze template.")
             raise ValueError("OpenAI API key is not configured")
         
+        # Extract template ID and expected name from prompt if possible
+        template_id = None
+        expected_name = None
+        
+        # Try to extract template ID from the prompt
+        id_match = re.search(r'ID: ([0-9]+)', template_prompt)
+        if id_match:
+            template_id = id_match.group(1)
+            
+        # Try to extract template URL which might help with verification
+        url_match = re.search(r'URL: (https?://[^\s]+)', template_prompt)
+        template_url = url_match.group(1) if url_match else None
+        
         try:
             response = self.client.chat.completions.create(
                 model="gpt-4o",
@@ -87,8 +100,15 @@ class AIMemeGenerator:
                 analysis = json.loads(content)
                 # Mark the template as analyzed
                 analysis["analyzed"] = True
-                # Add a timestamp
+                # Add template ID for verification
+                if template_id:
+                    analysis["template_id"] = template_id
+                # Add template URL for reference
+                if template_url:
+                    analysis["template_url"] = template_url
+                # Store the analysis prompt for reference
                 analysis["analysis_prompt"] = template_prompt
+                
                 return analysis
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse JSON from template analysis: {e}")
@@ -96,7 +116,10 @@ class AIMemeGenerator:
                     "name": "Unknown Template",
                     "description": "Failed to analyze template",
                     "analyzed": False,
-                    "error": str(e)
+                    "error": str(e),
+                    "template_id": template_id,
+                    "template_url": template_url,
+                    "analysis_prompt": template_prompt
                 }
                 
         except Exception as e:
@@ -105,7 +128,10 @@ class AIMemeGenerator:
                 "name": "Unknown Template",
                 "description": "Failed to analyze template",
                 "analyzed": False,
-                "error": str(e)
+                "error": str(e),
+                "template_id": template_id,
+                "template_url": template_url,
+                "analysis_prompt": template_prompt
             }
     
     def analyze_template_batch(self, templates: List[Dict[str, Any]], imgflip_generator) -> Dict[str, Dict[str, Any]]:
@@ -789,8 +815,9 @@ class AIMemeGenerator:
         template_analysis: Dict[str, Any], 
         band_or_genre: str = None, 
         context: str = None,
-        is_band: bool = True
-    ) -> List[str]:
+        is_band: bool = True,
+        return_prompt: bool = False
+    ) -> Union[List[str], Tuple[List[str], str]]:
         """
         Generate meme text that fits the specific template's format, optionally with band or genre context.
         
@@ -799,9 +826,11 @@ class AIMemeGenerator:
             band_or_genre: Optional band name or genre to reference in the meme
             context: Additional context to consider
             is_band: True if band_or_genre is a band name, False if it's a genre
+            return_prompt: If True, return the prompt along with the generated text
             
         Returns:
-            List of text strings for each text box in the template
+            If return_prompt is False: List of text strings for each text box in the template
+            If return_prompt is True: Tuple of (List of text strings, prompt string)
         """
         if not self.client:
             logger.error("OpenAI client not initialized. Cannot generate text.")
@@ -943,14 +972,21 @@ class AIMemeGenerator:
                 
                 # Clean the text items
                 clean_texts = [self._remove_emojis(text) for text in text_items]
-                return clean_texts
+                
+                if return_prompt:
+                    return clean_texts, user_prompt
+                else:
+                    return clean_texts
                 
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse JSON from meme text generation: {e}")
                 # Fallback to simple text extraction
                 lines = content.strip().split('\n')
                 clean_lines = [self._remove_emojis(line) for line in lines]
-                return clean_lines[:5]  # Limit to 5 lines max
+                if return_prompt:
+                    return clean_lines[:5], user_prompt  # Limit to 5 lines max
+                else:
+                    return clean_lines[:5]  # Limit to 5 lines max
                 
         except Exception as e:
             logger.error(f"Error generating template-specific meme text: {str(e)}")

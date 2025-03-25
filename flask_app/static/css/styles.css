@@ -1,0 +1,49 @@
+/* Global styling to fix text visibility issues */
+
+/* Fix for yellow text on white background in debug sections */
+.border.rounded.p-2.bg-light {
+    background-color: #343a40 !important;
+    color: #f8f9fa !important;
+}
+
+.border.rounded.p-2.bg-light pre,
+.border.rounded.p-2.bg-light code,
+.border.rounded.p-2.bg-light p,
+.border.rounded.p-2.bg-light ol,
+.border.rounded.p-2.bg-light li {
+    color: #f8f9fa !important;
+}
+
+/* Fix for example sections */
+.example-item {
+    background-color: #343a40 !important;
+    color: #f8f9fa !important;
+}
+
+.example-item p,
+.example-item h5,
+.example-item strong {
+    color: #f8f9fa !important;
+}
+
+/* Fix alerts to ensure proper contrast */
+.alert-info {
+    color: white !important;
+    background-color: #0d6efd !important;
+    border-color: #0a58ca !important;
+}
+
+.alert-info i {
+    color: white !important;
+}
+
+/* Fix modal content */
+#createMemeModal .alert-info {
+    background-color: #0d6efd !important;
+    color: white !important;
+}
+
+/* Improve form placeholder contrast */
+.form-control::placeholder {
+    color: #6c757d !important;
+} 

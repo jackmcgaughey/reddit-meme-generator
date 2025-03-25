@@ -107,6 +107,49 @@
                     </a>
                 </div>
             </div>
+            
+            {% if meme.show_prompts %}
+            <div class="card mt-3">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-bug"></i> Debug Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6>Template Analysis Prompt:</h6>
+                        <div class="border rounded p-2 bg-light">
+                            <pre class="mb-0" style="white-space: pre-wrap;"><code>{{ meme.template_analysis_prompt }}</code></pre>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Meme Generation Prompt:</h6>
+                        <div class="border rounded p-2 bg-light">
+                            <pre class="mb-0" style="white-space: pre-wrap;"><code>{{ meme.generation_prompt }}</code></pre>
+                        </div>
+                    </div>
+                    
+                    {% if meme.original_texts or meme.mapped_texts %}
+                    <div class="mb-3">
+                        <h6>Text Box Mapping:</h6>
+                        <div class="border rounded p-2 bg-light">
+                            <p><strong>Original texts (from AI):</strong></p>
+                            <ol>
+                                {% for text in meme.original_texts %}
+                                <li>{{ text }}</li>
+                                {% endfor %}
+                            </ol>
+                            
+                            <p><strong>Mapped texts (sent to ImgFlip API):</strong></p>
+                            <ol>
+                                {% for text in meme.mapped_texts %}
+                                <li>{{ text }}</li>
+                                {% endfor %}
+                            </ol>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -122,6 +165,23 @@
     }
     .meme-text-display {
         text-align: left;
+    }
+    
+    /* Debug information styling */
+    .border.rounded.p-2.bg-light {
+        background-color: #343a40 !important;
+    }
+    .border.rounded.p-2.bg-light pre {
+        color: #f8f9fa;
+    }
+    .border.rounded.p-2.bg-light code {
+        color: #f8f9fa;
+    }
+    .border.rounded.p-2.bg-light ol {
+        color: #f8f9fa;
+    }
+    .border.rounded.p-2.bg-light p {
+        color: #f8f9fa;
     }
 </style>
 {% endblock %} 

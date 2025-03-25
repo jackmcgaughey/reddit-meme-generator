@@ -181,20 +181,28 @@ class ImgFlipGenerator:
             "password": self.password
         }
         
+        # Get original texts for debugging
+        original_texts = texts.copy() if isinstance(texts, list) else texts
+        
+        # Log the number of text boxes provided
+        logger.info(f"Generating meme for template {template_id} with {len(texts)} text boxes")
+        
         # Apply template-specific box mappings if available
         if isinstance(texts, list) and template_id in self.template_box_mappings:
-            # Create a new array with the correct mapping
-            mapped_texts = [""] * len(texts)  # Initialize with empty strings
             mapping = self.template_box_mappings[template_id]
+            # Get the maximum API box index to determine the size of mapped_texts
+            max_api_box = max(mapping.values()) if mapping else 0
+            # Create a new array with the correct size to accommodate all mapped boxes
+            mapped_texts = [""] * (max_api_box + 1)
             
+            # Map text from UI positions to API positions
             for ui_box, api_box in mapping.items():
                 if ui_box < len(texts):
                     # Get text from the UI position and assign it to the correct API position
                     text_content = texts[ui_box]
-                    if api_box < len(mapped_texts):
-                        mapped_texts[api_box] = text_content
+                    mapped_texts[api_box] = text_content
             
-            logger.info(f"Applied template-specific box mapping for template {template_id}")
+            logger.info(f"Applied template-specific box mapping for template {template_id}. Before: {texts}, After: {mapped_texts}")
             texts = mapped_texts
         
         # Process text inputs
@@ -202,10 +210,12 @@ class ImgFlipGenerator:
             # Handle list format by converting to box format
             for i, text in enumerate(texts):
                 params[f"boxes[{i}][text]"] = text
+                logger.debug(f"Setting box {i} to: {text}")
         elif isinstance(texts, dict):
             # Handle dictionary format with explicit box indices
             for box_index, text in texts.items():
                 params[f"boxes[{box_index}][text]"] = text
+                logger.debug(f"Setting box {box_index} to: {text}")
         else:
             logger.error("Invalid texts format. Must be a list or dictionary.")
             return {"success": False, "error_message": "Invalid texts format"}
@@ -227,17 +237,26 @@ class ImgFlipGenerator:
                         return {
                             "success": True, 
                             "url": meme_url, 
-                            "local_path": output_path
+                            "local_path": output_path,
+                            "original_texts": original_texts,
+                            "mapped_texts": texts
                         }
                     else:
                         return {
                             "success": True, 
                             "url": meme_url, 
                             "local_path": None,
-                            "warning": "Could not save meme locally"
+                            "warning": "Could not save meme locally",
+                            "original_texts": original_texts,
+                            "mapped_texts": texts
                         }
                 
-                return {"success": True, "url": meme_url}
+                return {
+                    "success": True, 
+                    "url": meme_url,
+                    "original_texts": original_texts,
+                    "mapped_texts": texts
+                }
             else:
                 error_message = data.get("error_message", "Unknown error")
                 logger.error(f"ImgFlip API error: {error_message}")
@@ -280,12 +299,37 @@ class ImgFlipGenerator:
                 "box_count": 2
             }
             
-        # Override box_count with template_box_mappings if available
+        # If template has a specific box mapping, use that to enhance the metadata
         if template_id in self.template_box_mappings:
-            # Use the number of entries in the mapping to determine the box count
-            mapping_box_count = len(self.template_box_mappings[template_id])
-            result["box_count"] = mapping_box_count
-            logger.debug(f"Overriding box count for template {template_id} to {mapping_box_count} based on template mapping")
+            mapping = self.template_box_mappings[template_id]
+            
+            # Only override box_count if the mapping requires more boxes than what's in the metadata
+            mapping_box_count = max(mapping.keys()) + 1 if mapping else 0
+            template_box_count = result.get("box_count", 0)
+            
+            # Log the template's box count information
+            logger.debug(f"Template {template_id} box counts - API: {template_box_count}, Mapping: {mapping_box_count}")
+            
+            # Use the larger of the two values to ensure we have enough boxes
+            result["box_count"] = max(template_box_count, mapping_box_count)
+            
+            # Add box placement information to the metadata for UI display
+            if "box_placement" not in result:
+                result["box_placement"] = {}
+                
+                # Add descriptions for special templates
+                if template_id == "87743020":  # Two Buttons
+                    result["box_placement"] = {
+                        "0": "Character description (top of image)",
+                        "1": "Left/Bottom button text",
+                        "2": "Right/Middle button text"
+                    }
+                elif template_id == "112126428":  # Distracted Boyfriend
+                    result["box_placement"] = {
+                        "0": "The boyfriend (who is being distracted)",
+                        "1": "The girlfriend (who is upset)",
+                        "2": "The other woman (who is distracting)"
+                    }
             
         return result
         

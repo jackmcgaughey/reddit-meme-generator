@@ -32,39 +32,514 @@
   "87743020": {
     "name": "Two Buttons",
     "description": {
-      "visual_elements": "The image features a three-panel sequence. The top panel depicts a character, commonly known as 'Sweating Man' from the video game 'Megaman,' who is visibly stressed, sweating, and anxious with his hand hovering between two large red buttons. The middle and bottom panels each have one of the buttons labeled. The setting is minimalistic, focusing on the character's arm pointing at the buttons, capturing the character's dilemma and emotional strain while making a decision.",
-      "conventional_meaning": "This meme template is widely used to depict someone who is facing a difficult decision between two equally challenging or conflicting options. It's meant to humorously represent the stress and indecision involved in making a tough choice.",
-      "recognizable_features": "This template is instantly recognizable due to the cartoonish style of the sweating man and the two large red buttons. The anxious expression and exaggerated sweating emphasize the theme of overwhelming indecision."
+      "visual_elements": "The template features a cartoon-style illustration of a person (recognized as a sweating, frantic man - often depicted as a nervous character) who is faced with selecting between two buttons mounted on a wall. The character's forehead is visibly sweating, emphasizing his indecisiveness or anxiety. The person is drawn in a semi-realistic to cartoonish style, highlighting the comedic nature of his dilemma.",
+      "conventional_usage": "This meme is frequently used to depict a situation where someone is experiencing difficulty in making a decision between two equally challenging or appealing options. The humor often arises from the juxtaposition of serious or trivial choices that amplify the character's exaggerated reaction.",
+      "uniqueness": "What makes this meme instantly recognizable is the image of the man sweating profusely, symbolizing an over-exaggerated state of stress or confusion over generally mundane or humorous decisions."
     },
     "format": {
-      "text_areas": {
-        "top_panel": "Typically features a label or description for the person or entity struggling with a decision. This serves to set the context or highlight the subject facing the dilemma.",
-        "middle_panel": "This area contains text labeling one of the two choices or options. It is one of the focuses of the decision-making process.",
-        "bottom_panel": "Similar to the middle panel, this area labels the alternative choice, juxtaposed against the option in the middle panel, highlighting the dilemma."
+      "content_in_boxes": "Typically, each button represents a different choice or action, and the text reinforces the satirical indecision. The character\u2019s thought process is implied by his facial expression and sweat, conveying his internal struggle with the options presented.",
+      "box_position": {
+        "box_0": "Top-left, next to the left button - labeled with one choice or action",
+        "box_1": "Top-right, next to the right button - labeled with the second choice or action",
+        "box_2": "Bottom-center, next to the man's face - usually a remark or context about the character's emotional state or why the decision is difficult"
       },
-      "relationship": "The relationship between the text areas is one of contrast or dichotomy, where the subject must choose between two mutually exclusive options. The humor often stems from the exaggeration of the difficulty in choosing between two trivial or absurdly specific scenarios.",
-      "format_pattern": "The effectiveness of the meme lies in its simplicity and universal relatability to decision-making, using stark, exaggerated examples for comedic effect. The text in each area plays off each other, making each choice seem equally pressing and problematic."
+      "text_order": [
+        "First: Box 0 (left button)",
+        "Second: Box 1 (right button)",
+        "Third: Box 2 (emotional/decision context)"
+      ],
+      "relationship": "The text areas directly contrast each other, as the choices typically presented on the buttons create a humorous tension or dilemma, often highlighting a theme of indecisiveness or paradox."
+    },
+    "box_placement": {
+      "box_0": {
+        "position": "Top-left",
+        "content_use": "This box is for labeling the choice or action that the left button signifies. It is one side of the dilemma.",
+        "panel": "Single panel",
+        "fill_order": "First"
+      },
+      "box_1": {
+        "position": "Top-right",
+        "content_use": "This box labels the choice or action represented by the right button, offering an alternative or conflicting option to the left button.",
+        "panel": "Single panel",
+        "fill_order": "Second"
+      },
+      "box_2": {
+        "position": "Bottom-center",
+        "content_use": "This box provides context or insight into why the character is sweating, signifying the difficulty or humor in choosing between the two buttons. It explains or enhances the impact of the dilemma.",
+        "panel": "Single panel",
+        "fill_order": "Third"
+      }
     },
     "example": [
       {
-        "top_panel": "Procrastinating student",
-        "middle_panel": "Finish assignment on time",
-        "bottom_panel": "Watch another episode of a show"
+        "box_0": "Call in sick to work",
+        "box_1": "Attend the big presentation",
+        "box_2": "When you've had no sleep and both options are terrible"
       },
       {
-        "top_panel": "Employee on the last working day before vacation",
-        "middle_panel": "Finish reports",
-        "bottom_panel": "Leave early and avoid all emails"
+        "box_0": "Eat the last piece of cake",
+        "box_1": "Save it for later",
+        "box_2": "When your diet plan starts tomorrow"
       }
     ],
     "tone": {
-      "emotional_tone": "The tone is typically humorous and can also encompass irony or sarcasm. The absurdity of the depicted indecision often highlights the human tendency to overthink or stress over minor choices, which is humorously exaggerated, making it relatable and funny to a broad audience."
+      "emotional_tone": "Humorous with elements of irony or sarcasm",
+      "subtlety": "The meme thrives on the hyperbolic portrayal of stress over common or light-hearted issues, creating a comedic effect as it resonates with relatable situations. It uses exaggeration to humorously depict the human experience of decision-making."
     },
     "analyzed": true,
     "template_id": "87743020",
     "template_url": "https://i.imgflip.com/1g8my4.jpg",
-    "analysis_prompt": "\nAnalyze this specific meme template: \"Two Buttons\" (ID: 87743020, Box Count: 3)\nURL: https://i.imgflip.com/1g8my4.jpg\n\nIMPORTANT: Your analysis must be for THIS EXACT TEMPLATE shown in the URL, not any other meme. Look carefully at the image.\n\nFor the \"Two Buttons\" meme template:\n\n1. Full Name: Verify this is indeed the \"Two Buttons\" meme before proceeding\n   - If this is not a \"Two Buttons\" meme, please indicate that it appears to be something else\n\n2. Description: Provide a detailed description focusing on:\n   - The exact visual elements visible in the image (people, objects, scene, expressions)\n   - The conventional meaning/usage of this specific template in internet meme culture\n   - What makes this template instantly recognizable or unique\n\n3. Format: Explain precisely how this template with 3 text boxes is conventionally used:\n   - What specific content typically appears in each text area (be explicit about each box)\n   - The relationship between the text areas (contrast, progression, cause-effect, etc.)\n   - The specific format or pattern that makes this meme template effective\n   - Whether each text area represents different perspectives, concepts, or time frames\n\n4. Example: Provide 2 authentic examples of text that would typically be used in this meme\n   - Show exactly what text would go in each area\n   - Use examples that follow the established convention for this specific meme\n\n5. Tone: The emotional tone this meme is typically used with (humorous, ironic, sarcastic, etc.)\n   - Explain any subtleties in how the tone works with this specific template\n\nYour analysis must accurately reflect this specific template's actual usage in meme culture.\nFormat your response as a JSON structure with these keys: name, description, format, example, tone\n",
+    "analysis_prompt": "\nAnalyze this specific meme template: \"Two Buttons\" (ID: 87743020, Box Count: 3)\nURL: https://i.imgflip.com/1g8my4.jpg\n\nIMPORTANT: Your analysis must be for THIS EXACT TEMPLATE shown in the URL, not any other meme. Look carefully at the image.\n\nFor the \"Two Buttons\" meme template:\n\n1. Full Name: Verify this is indeed the \"Two Buttons\" meme before proceeding\n   - If this is not a \"Two Buttons\" meme, please indicate that it appears to be something else\n\n2. Description: Provide a detailed description focusing on:\n   - The exact visual elements visible in the image (people, objects, scene, expressions)\n   - The conventional meaning/usage of this specific template in internet meme culture\n   - What makes this template instantly recognizable or unique\n\n3. Format: Explain precisely how this template with 3 text boxes is conventionally used:\n   - What specific content typically appears in each text area (be explicit about each box)\n   - The exact position of each text box (top, bottom, left, right, middle, etc.)\n   - The order in which text boxes are typically assigned in meme generators (Box 0, Box 1, etc.)\n   - The relationship between the text areas (contrast, progression, cause-effect, etc.)\n   - The specific format or pattern that makes this meme template effective\n   - Whether each text area represents different perspectives, concepts, or time frames\n\n4. Box Placement: For each box, specify:\n   - EXACT position on the image (top-left, bottom-center, etc.)\n   - What this specific box should be used for\n   - If this is a multi-panel meme, which panel contains this box\n   - The order in which users should fill these boxes when creating a meme\n\n5. Example: Provide 2 authentic examples of text that would typically be used in this meme\n   - Show exactly what text would go in each area\n   - Use examples that follow the established convention for this specific meme\n   - Explicitly indicate which text goes in which position (e.g., \"Box 1 (top): text\")\n\n6. Tone: The emotional tone this meme is typically used with (humorous, ironic, sarcastic, etc.)\n   - Explain any subtleties in how the tone works with this specific template\n\nYour analysis must accurately reflect this specific template's actual usage in meme culture.\nFormat your response as a JSON structure with these keys: name, description, format, box_placement, example, tone\n",
     "url": "https://i.imgflip.com/1g8my4.jpg",
+    "box_count": 3
+  },
+  "112126428": {
+    "name": "Distracted Boyfriend",
+    "description": "The 'Distracted Boyfriend' meme features an image of a man (the boyfriend) turning his head to look at another woman while his girlfriend looks at him in disapproval. This scene takes place on a city street during the daytime. The boyfriend appears surprised and intrigued by the other woman, who is walking in the opposite direction, showcasing a casual yet confident demeanor. The girlfriend, on the other hand, exhibits a mix of surprise, anger, and disbelief at her boyfriend's seemingly inattentive behavior. This template is commonly used to depict scenarios involving distraction or preference shifts, humorously illustrating the tendency to be attracted to new or tempting alternatives while disregarding the existing, often more sensible, commitments.",
+    "format": {
+      "text_areas": [
+        {
+          "position": "top-left",
+          "description": "This box is used to label the girlfriend, representing the current or existing scenario, commitment, or situation."
+        },
+        {
+          "position": "top-right",
+          "description": "This box is used to label the woman being looked at, representing the tempting, new, or distracting alternative."
+        },
+        {
+          "position": "bottom-center",
+          "description": "This box is used to label the boyfriend, representing the person or entity exhibiting the shift in attention from the existing scenario to the new one."
+        }
+      ],
+      "order": [
+        "Box 0",
+        "Box 1",
+        "Box 2"
+      ],
+      "relationship": "The meme uses contrast to depict a preference shift or distraction. Each text box represents different perspectives or choices, creating a humorous effect by highlighting the tendency to prefer the new over the existing."
+    },
+    "box_placement": [
+      {
+        "position": "top-left",
+        "use": "Label the girlfriend or the current focus/commitment",
+        "order": "Box 0"
+      },
+      {
+        "position": "top-right",
+        "use": "Label the woman being looked at or the new distraction",
+        "order": "Box 1"
+      },
+      {
+        "position": "bottom-center",
+        "use": "Label the boyfriend or the person/entity shifting attention",
+        "order": "Box 2"
+      }
+    ],
+    "example": [
+      {
+        "Box 0 (top-left)": "Actual College Degree",
+        "Box 1 (top-right)": "Online Course Certificate",
+        "Box 2 (bottom-center)": "You Loving the Shortest Path"
+      },
+      {
+        "Box 0 (top-left)": "Healthy Eating",
+        "Box 1 (top-right)": "Fast Food",
+        "Box 2 (bottom-center)": "My Weekend Self"
+      }
+    ],
+    "tone": "The meme is typically used with a humorous and ironic tone. It plays on the common human experience of being distracted by something perceived as more appealing or desirable, often leading to comedic or ironic consequences. The humor arises from the exaggerated and relatable depiction of distraction and desire.",
+    "analyzed": true,
+    "template_id": "112126428",
+    "template_url": "https://i.imgflip.com/1ur9b0.jpg",
+    "analysis_prompt": "\nAnalyze this specific meme template: \"Distracted Boyfriend\" (ID: 112126428, Box Count: 3)\nURL: https://i.imgflip.com/1ur9b0.jpg\n\nIMPORTANT: Your analysis must be for THIS EXACT TEMPLATE shown in the URL, not any other meme. Look carefully at the image.\n\nFor the \"Distracted Boyfriend\" meme template:\n\n1. Full Name: Verify this is indeed the \"Distracted Boyfriend\" meme before proceeding\n   - If this is not a \"Distracted Boyfriend\" meme, please indicate that it appears to be something else\n\n2. Description: Provide a detailed description focusing on:\n   - The exact visual elements visible in the image (people, objects, scene, expressions)\n   - The conventional meaning/usage of this specific template in internet meme culture\n   - What makes this template instantly recognizable or unique\n\n3. Format: Explain precisely how this template with 3 text boxes is conventionally used:\n   - What specific content typically appears in each text area (be explicit about each box)\n   - The exact position of each text box (top, bottom, left, right, middle, etc.)\n   - The order in which text boxes are typically assigned in meme generators (Box 0, Box 1, etc.)\n   - The relationship between the text areas (contrast, progression, cause-effect, etc.)\n   - The specific format or pattern that makes this meme template effective\n   - Whether each text area represents different perspectives, concepts, or time frames\n\n4. Box Placement: For each box, specify:\n   - EXACT position on the image (top-left, bottom-center, etc.)\n   - What this specific box should be used for\n   - If this is a multi-panel meme, which panel contains this box\n   - The order in which users should fill these boxes when creating a meme\n\n5. Example: Provide 2 authentic examples of text that would typically be used in this meme\n   - Show exactly what text would go in each area\n   - Use examples that follow the established convention for this specific meme\n   - Explicitly indicate which text goes in which position (e.g., \"Box 1 (top): text\")\n\n6. Tone: The emotional tone this meme is typically used with (humorous, ironic, sarcastic, etc.)\n   - Explain any subtleties in how the tone works with this specific template\n\nYour analysis must accurately reflect this specific template's actual usage in meme culture.\nFormat your response as a JSON structure with these keys: name, description, format, box_placement, example, tone\n",
+    "url": "https://i.imgflip.com/1ur9b0.jpg",
+    "box_count": 3
+  },
+  "217743513": {
+    "name": "UNO Draw 25 Cards",
+    "description": {
+      "visual_elements": "The image shows a man in a chair facing left, holding a hand of UNO cards. The man appears to be in a decision-making scenario, looking at the camera with a neutral expression. A large stack of UNO cards is placed on a table in front of him. This setup is consistent with the idea of having to draw additional cards if the player does not make a particular choice.",
+      "conventional_meaning": "This meme template humorously highlights situations where someone has a difficult choice between two options: taking a potentially negative action (often humorous or socially awkward) or drawing 25 UNO cards, which is an excessive and undesirable consequence in the game context. The implication is that the choice is so undesirable that one would rather face the game penalty.",
+      "recognizable_features": "What makes this template recognizable is the juxtaposition of an unreasonable action with the equally unreasonable punishment from the game of UNO, exaggerated by the improbability of having to draw that many cards at once."
+    },
+    "format": {
+      "text_content_usage": {
+        "box_0_description": "Box 0, typically placed at the top-left, presents the unwanted option the subject has to choose between or forgo, which is often a behavior, admission, or action.",
+        "box_1_description": "Box 1 is located at the bottom-right and presents the alternative of drawing 25 UNO cards, which visually and conceptually contrasts with the first option by presenting a humorous or impractical outcome."
+      },
+      "box_order": "Box 0 is positioned first in the meme generator. Box 1 is positioned second.",
+      "text_relationship": "The relationship between the text areas is one of contrast, highlighting an improbable or socially awkward choice versus a steep in-game penalty.",
+      "perspective_representation": "Each text area represents different aspects of decision-making. Box 0 describes what could be seen as an unwanted action, while Box 1 indicates the exaggerated consequence."
+    },
+    "box_placement": {
+      "box_0": {
+        "position": "top-left",
+        "intended_use": "This box introduces the scenario's first option, typically an undesirable decision or action."
+      },
+      "box_1": {
+        "position": "bottom-right",
+        "intended_use": "This box presents the exaggerated alternative of drawing 25 cards as the outcome of avoiding the first option."
+      }
+    },
+    "example": [
+      {
+        "Box_0": "Admit you're wrong",
+        "Box_1": "Draw 25"
+      },
+      {
+        "Box_0": "Go to the gym today",
+        "Box_1": "Draw 25"
+      }
+    ],
+    "tone": {
+      "general_tone": "The tone of the meme is humorous, often leaning into ironic or sarcastic undertones. The humor lies in the exaggerated comparison between a socially or personally difficult action and an absurdly exaggerated in-game penalty, highlighting human nature's inherent tendencies to avoid discomfort, even if the alternative is equally preposterous."
+    },
+    "analyzed": true,
+    "template_id": "217743513",
+    "template_url": "https://i.imgflip.com/3lmzyx.jpg",
+    "analysis_prompt": "\nAnalyze this specific meme template: \"UNO Draw 25 Cards\" (ID: 217743513, Box Count: 2)\nURL: https://i.imgflip.com/3lmzyx.jpg\n\nIMPORTANT: Your analysis must be for THIS EXACT TEMPLATE shown in the URL, not any other meme. Look carefully at the image.\n\nFor the \"UNO Draw 25 Cards\" meme template:\n\n1. Full Name: Verify this is indeed the \"UNO Draw 25 Cards\" meme before proceeding\n   - If this is not a \"UNO Draw 25 Cards\" meme, please indicate that it appears to be something else\n\n2. Description: Provide a detailed description focusing on:\n   - The exact visual elements visible in the image (people, objects, scene, expressions)\n   - The conventional meaning/usage of this specific template in internet meme culture\n   - What makes this template instantly recognizable or unique\n\n3. Format: Explain precisely how this template with 2 text boxes is conventionally used:\n   - What specific content typically appears in each text area (be explicit about each box)\n   - The exact position of each text box (top, bottom, left, right, middle, etc.)\n   - The order in which text boxes are typically assigned in meme generators (Box 0, Box 1, etc.)\n   - The relationship between the text areas (contrast, progression, cause-effect, etc.)\n   - The specific format or pattern that makes this meme template effective\n   - Whether each text area represents different perspectives, concepts, or time frames\n\n4. Box Placement: For each box, specify:\n   - EXACT position on the image (top-left, bottom-center, etc.)\n   - What this specific box should be used for\n   - If this is a multi-panel meme, which panel contains this box\n   - The order in which users should fill these boxes when creating a meme\n\n5. Example: Provide 2 authentic examples of text that would typically be used in this meme\n   - Show exactly what text would go in each area\n   - Use examples that follow the established convention for this specific meme\n   - Explicitly indicate which text goes in which position (e.g., \"Box 1 (top): text\")\n\n6. Tone: The emotional tone this meme is typically used with (humorous, ironic, sarcastic, etc.)\n   - Explain any subtleties in how the tone works with this specific template\n\nYour analysis must accurately reflect this specific template's actual usage in meme culture.\nFormat your response as a JSON structure with these keys: name, description, format, box_placement, example, tone\n",
+    "url": "https://i.imgflip.com/3lmzyx.jpg",
+    "box_count": 1
+  },
+  "124822590": {
+    "name": "Left Exit 12 Off Ramp",
+    "description": {
+      "visual_elements": "The image depicts a highway scene with a car annotated to swerve off to the left at high speed towards an exit ramp. The left lane on this ramp is abruptly entered by the car, while the straight, main path continues on a freeway. The exit sign above the ramp has two panels: one indicating the straight direction and the other the left exit, suggesting two possible choices or paths.",
+      "conventional_usage": "This meme is used to depict a decision-making process or situation where a person or entity abruptly changes course from an expected or conventional path to an alternate choice. It often represents the conflict between responsibility or rational decision and impulsive or emotional desires.",
+      "recognizability": "The meme is instantly identifiable by the highway and exit signage backdrop, with the high-speed swerve of the car being a key feature that signifies an abrupt and unexpected change in decision or direction."
+    },
+    "format": {
+      "text_content": {
+        "Box 0": "The main (straight) path usually represents the sensible or expected choice.",
+        "Box 1": "The left exit represents the more impulsive, often whimsically irresponsible choice.",
+        "Box 2": "Above the car is where the person or entity making the decision can be labeled."
+      },
+      "text_position": {
+        "Box 0": "Top of the image, overlaying the exit sign directions - typically on the straight path sign.",
+        "Box 1": "Top of the image, overlaying the exit sign directions - typically on the left exit sign.",
+        "Box 2": "Over the car swerving onto the ramp to label who is making the choice."
+      },
+      "box_order": "Box 0 (straight sign), Box 1 (left exit sign), Box 2 (car label)",
+      "text_relationship": "The text boxes contrast the rational and irrational choices, showing progression or the cause-effect of the decision to change paths."
+    },
+    "box_placement": {
+      "Box 0": {
+        "position": "Top-center, above the main straight lane",
+        "usage": "To describe the predictable or sensible choice.",
+        "panel": "Single panel",
+        "fill_order": "First"
+      },
+      "Box 1": {
+        "position": "Top-right, above the exit lane",
+        "usage": "To describe the impulsive or whimsical choice.",
+        "panel": "Single panel",
+        "fill_order": "Second"
+      },
+      "Box 2": {
+        "position": "Above the car",
+        "usage": "To label the decision-maker or the context of the decision.",
+        "panel": "Single panel",
+        "fill_order": "Third"
+      }
+    },
+    "example": [
+      {
+        "Box 0": "Doing your homework",
+        "Box 1": "Scrolling social media",
+        "Box 2": "Teenager at 10 PM"
+      },
+      {
+        "Box 0": "Going to bed early",
+        "Box 1": "Binge-watching Netflix",
+        "Box 2": "Me"
+      }
+    ],
+    "tone": {
+      "emotional_tone": "Humorous with an element of irony or sarcasm",
+      "subtleties": "The humor often comes from the relatability of the impulsive choice, highlighting the internal battle between responsible actions and temptations, often in mundane or everyday scenarios."
+    },
+    "analyzed": true,
+    "template_id": "124822590",
+    "template_url": "https://i.imgflip.com/22bdq6.jpg",
+    "analysis_prompt": "\nAnalyze this specific meme template: \"Left Exit 12 Off Ramp\" (ID: 124822590, Box Count: 3)\nURL: https://i.imgflip.com/22bdq6.jpg\n\nIMPORTANT: Your analysis must be for THIS EXACT TEMPLATE shown in the URL, not any other meme. Look carefully at the image.\n\nFor the \"Left Exit 12 Off Ramp\" meme template:\n\n1. Full Name: Verify this is indeed the \"Left Exit 12 Off Ramp\" meme before proceeding\n   - If this is not a \"Left Exit 12 Off Ramp\" meme, please indicate that it appears to be something else\n\n2. Description: Provide a detailed description focusing on:\n   - The exact visual elements visible in the image (people, objects, scene, expressions)\n   - The conventional meaning/usage of this specific template in internet meme culture\n   - What makes this template instantly recognizable or unique\n\n3. Format: Explain precisely how this template with 3 text boxes is conventionally used:\n   - What specific content typically appears in each text area (be explicit about each box)\n   - The exact position of each text box (top, bottom, left, right, middle, etc.)\n   - The order in which text boxes are typically assigned in meme generators (Box 0, Box 1, etc.)\n   - The relationship between the text areas (contrast, progression, cause-effect, etc.)\n   - The specific format or pattern that makes this meme template effective\n   - Whether each text area represents different perspectives, concepts, or time frames\n\n4. Box Placement: For each box, specify:\n   - EXACT position on the image (top-left, bottom-center, etc.)\n   - What this specific box should be used for\n   - If this is a multi-panel meme, which panel contains this box\n   - The order in which users should fill these boxes when creating a meme\n\n5. Example: Provide 2 authentic examples of text that would typically be used in this meme\n   - Show exactly what text would go in each area\n   - Use examples that follow the established convention for this specific meme\n   - Explicitly indicate which text goes in which position (e.g., \"Box 1 (top): text\")\n\n6. Tone: The emotional tone this meme is typically used with (humorous, ironic, sarcastic, etc.)\n   - Explain any subtleties in how the tone works with this specific template\n\nYour analysis must accurately reflect this specific template's actual usage in meme culture.\nFormat your response as a JSON structure with these keys: name, description, format, box_placement, example, tone\n",
+    "url": "https://i.imgflip.com/22bdq6.jpg",
+    "box_count": 3
+  },
+  "131087935": {
+    "name": "Running Away Balloon",
+    "description": {
+      "visual_elements": "The image consists of a composite with five distinct panels: In the top panel, a person is running toward a red balloon. In the second panel, the person has caught the balloon. The third panel shows the balloon slipping from the person's grasp. The fourth panel depicts the balloon floating away, and the final panel shows the person helplessly watching the balloon in the distance. The person's facial expressions range from happy to surprised to distressed, representing a gradual shift in emotion.",
+      "conventional_usage": "This meme template is used to illustrate the process of gaining something valuable, losing it unexpectedly, and experiencing regret or loss. The humor typically arises from relatable scenarios where something precious is fleetingly gained and quickly lost.",
+      "uniqueness": "The meme is visually recognizable due to its sequential depiction of an emotional journey, utilizing a simple scenario involving a balloon to metaphorically represent transience and loss. The narrative progression is evident across the panels, making it effective for storytelling."
+    },
+    "format": {
+      "text_content": [
+        "Box 0 (top-left): Represents the initial aspiration or desire.",
+        "Box 1 (top-middle): Captures the moment of acquiring or achieving the goal.",
+        "Box 2 (middle-middle): Highlights the shift from gain to potential loss.",
+        "Box 3 (bottom-left): Depicts the onset of loss as the situation slips away.",
+        "Box 4 (bottom-right): Shows the final realization and acknowledgment of loss."
+      ],
+      "text_position": [
+        "Box 0: Top-left on the first panel.",
+        "Box 1: Top-middle on the second panel.",
+        "Box 2: Middle-middle on the third panel.",
+        "Box 3: Bottom-left on the fourth panel.",
+        "Box 4: Bottom-right on the fifth panel."
+      ],
+      "order": "The text boxes are typically filled in sequential order from top-left to bottom-right, following the visual progression of events in the image.",
+      "relationship": "The relationship between text areas is one of progression and causality, effectively illustrating the journey from ambition through acquisition to ultimate loss."
+    },
+    "box_placement": [
+      {
+        "position": "Top-left",
+        "box_usage": "Aspiration or initial desire",
+        "panel": "First panel",
+        "fill_order": "First fill"
+      },
+      {
+        "position": "Top-middle",
+        "box_usage": "Moment of realization or achievement",
+        "panel": "Second panel",
+        "fill_order": "Second fill"
+      },
+      {
+        "position": "Middle-middle",
+        "box_usage": "Shift from gain to loss",
+        "panel": "Third panel",
+        "fill_order": "Third fill"
+      },
+      {
+        "position": "Bottom-left",
+        "box_usage": "Immediate loss or setback",
+        "panel": "Fourth panel",
+        "fill_order": "Fourth fill"
+      },
+      {
+        "position": "Bottom-right",
+        "box_usage": "Final realization of loss",
+        "panel": "Fifth panel",
+        "fill_order": "Fifth fill"
+      }
+    ],
+    "example": [
+      {
+        "Box 0 (top-left)": "Finding a $20 bill on the street",
+        "Box 1 (top-middle)": "Picking it up excitedly",
+        "Box 2 (middle-middle)": "Realizing it's actually just a flyer",
+        "Box 3 (bottom-left)": "Seeing the wind take it",
+        "Box 4 (bottom-right)": "Standing there with empty hands"
+      },
+      {
+        "Box 0 (top-left)": "Meeting someone at a party",
+        "Box 1 (top-middle)": "Exchanging phone numbers",
+        "Box 2 (middle-middle)": "Accidentally deleting the contact",
+        "Box 3 (bottom-left)": "Trying to remember the number",
+        "Box 4 (bottom-right)": "Accepting it's gone forever"
+      }
+    ],
+    "tone": {
+      "emotional_tone": "The tone is often humorous and ironic, as it plays on the unexpected nature of loss and the rapid shift from success to failure. The inevitability of the loss is emphasized, enhancing the relatability and comedic effect."
+    },
+    "analyzed": true,
+    "template_id": "131087935",
+    "template_url": "https://i.imgflip.com/261o3j.jpg",
+    "analysis_prompt": "\nAnalyze this specific meme template: \"Running Away Balloon\" (ID: 131087935, Box Count: 5)\nURL: https://i.imgflip.com/261o3j.jpg\n\nIMPORTANT: Your analysis must be for THIS EXACT TEMPLATE shown in the URL, not any other meme. Look carefully at the image.\n\nFor the \"Running Away Balloon\" meme template:\n\n1. Full Name: Verify this is indeed the \"Running Away Balloon\" meme before proceeding\n   - If this is not a \"Running Away Balloon\" meme, please indicate that it appears to be something else\n\n2. Description: Provide a detailed description focusing on:\n   - The exact visual elements visible in the image (people, objects, scene, expressions)\n   - The conventional meaning/usage of this specific template in internet meme culture\n   - What makes this template instantly recognizable or unique\n\n3. Format: Explain precisely how this template with 5 text boxes is conventionally used:\n   - What specific content typically appears in each text area (be explicit about each box)\n   - The exact position of each text box (top, bottom, left, right, middle, etc.)\n   - The order in which text boxes are typically assigned in meme generators (Box 0, Box 1, etc.)\n   - The relationship between the text areas (contrast, progression, cause-effect, etc.)\n   - The specific format or pattern that makes this meme template effective\n   - Whether each text area represents different perspectives, concepts, or time frames\n\n4. Box Placement: For each box, specify:\n   - EXACT position on the image (top-left, bottom-center, etc.)\n   - What this specific box should be used for\n   - If this is a multi-panel meme, which panel contains this box\n   - The order in which users should fill these boxes when creating a meme\n\n5. Example: Provide 2 authentic examples of text that would typically be used in this meme\n   - Show exactly what text would go in each area\n   - Use examples that follow the established convention for this specific meme\n   - Explicitly indicate which text goes in which position (e.g., \"Box 1 (top): text\")\n\n6. Tone: The emotional tone this meme is typically used with (humorous, ironic, sarcastic, etc.)\n   - Explain any subtleties in how the tone works with this specific template\n\nYour analysis must accurately reflect this specific template's actual usage in meme culture.\nFormat your response as a JSON structure with these keys: name, description, format, box_placement, example, tone\n",
+    "url": "https://i.imgflip.com/261o3j.jpg",
+    "box_count": 5
+  },
+  "97984": {
+    "name": "Disaster Girl",
+    "description": {
+      "visual_elements": "The image prominently features a young girl with a mischievous smile looking directly at the camera, while in the background there is a house on fire. The scene conveys an impression of chaos and destruction juxtaposed with the girl's calm expression. This template is utilized in meme culture to humorously depict situations where chaos ensues, often implying that the subject of the meme is somehow involved or responsible for the disaster.",
+      "conventional_usage": "The template is used to represent someone who is nonchalant or indirectly involved in causing a 'disaster' or chaotic situation, often with tongue-in-cheek humor. It highlights the contrast between the destructive background and the serene demeanor of the girl in the foreground.",
+      "unique_features": "This template is recognizable due to the iconic expression of the young girl, which contrasts sharply with the burning house. The combination of this specific facial expression with the dramatic scene makes it instantly recognizable and often used to illustrate the idea of 'spectating chaos' with impunity or subtle satisfaction."
+    },
+    "format": {
+      "text_content": {
+        "Box 0": "Typically, this contains an ironic or humorous description of a situation or event to be interpreted as the 'disaster'.",
+        "Box 1": "This often relates to the role or perspective of the 'disaster girl', indicating indirect involvement or a third-party observation where the chaos is considered amusing or deserved."
+      },
+      "position": {
+        "Box 0": "Top-left, providing context or setup for the disaster featured.",
+        "Box 1": "Bottom-middle or bottom-right, used for the punchline or the girl's involvement/conclusion aspect of the meme."
+      },
+      "text_order": {
+        "Box 0": "Usually filled first as it sets the scene or context of the 'disaster'.",
+        "Box 1": "Filled second, offering the humorous or ironic follow-up."
+      },
+      "relationship": "This template employs a contrast between the setup and the reaction, employing irony or sarcasm where one text sets the stage for a chaotic event, and the other provides context/perspective emphasizing complacency or implicated satisfaction.",
+      "pattern": "The pattern of juxtaposing contrasting elements - chaos versus calm - makes the meme effective in delivering its humorous or ironic message.",
+      "perspectives": "Box 0 generally provides the external perspective or initial event; Box 1 gives the girl's supposed internal or implicit reaction."
+    },
+    "box_placement": {
+      "Box 0": {
+        "position": "Top-left",
+        "purpose": "To start with a situational context or framework of the disaster.",
+        "panel": "Single-panel meme.",
+        "order": "This should be filled first, setting up the meme's scenario."
+      },
+      "Box 1": {
+        "position": "Bottom-middle or bottom-right",
+        "purpose": "To deliver the punchline or connect the girl's expression to the described situation.",
+        "panel": "Single-panel meme.",
+        "order": "This should be filled second, completing the meme with an implied involvement or sarcastic conclusion."
+      }
+    },
+    "example": [
+      {
+        "Box 0": "When you finish the group project and realize you did all the work",
+        "Box 1": "Yet you're the only one getting an A"
+      },
+      {
+        "Box 0": "Everyone panicked over the latest tech glitch",
+        "Box 1": "Meanwhile, I was the one who pressed the wrong button"
+      }
+    ],
+    "tone": {
+      "general": "The tone is overwhelmingly humorous and ironic, often mixed with elements of sarcasm. It typically represents a scenario where one might derive satisfaction or amusement from a chaotic situation, particularly when indirectly involved or when there's an implied benefit.",
+      "subtleties": "The girl's serene expression juxtaposed with intense chaos plays into the dry comedic tone of detachment or understated malevolence, suggesting someone remaining nonchalant amidst turmoil, often humorously filling personal anecdotal scenarios."
+    },
+    "analyzed": true,
+    "template_id": "97984",
+    "template_url": "https://i.imgflip.com/23ls.jpg",
+    "analysis_prompt": "\nAnalyze this specific meme template: \"Disaster Girl\" (ID: 97984, Box Count: 2)\nURL: https://i.imgflip.com/23ls.jpg\n\nIMPORTANT: Your analysis must be for THIS EXACT TEMPLATE shown in the URL, not any other meme. Look carefully at the image.\n\nFor the \"Disaster Girl\" meme template:\n\n1. Full Name: Verify this is indeed the \"Disaster Girl\" meme before proceeding\n   - If this is not a \"Disaster Girl\" meme, please indicate that it appears to be something else\n\n2. Description: Provide a detailed description focusing on:\n   - The exact visual elements visible in the image (people, objects, scene, expressions)\n   - The conventional meaning/usage of this specific template in internet meme culture\n   - What makes this template instantly recognizable or unique\n\n3. Format: Explain precisely how this template with 2 text boxes is conventionally used:\n   - What specific content typically appears in each text area (be explicit about each box)\n   - The exact position of each text box (top, bottom, left, right, middle, etc.)\n   - The order in which text boxes are typically assigned in meme generators (Box 0, Box 1, etc.)\n   - The relationship between the text areas (contrast, progression, cause-effect, etc.)\n   - The specific format or pattern that makes this meme template effective\n   - Whether each text area represents different perspectives, concepts, or time frames\n\n4. Box Placement: For each box, specify:\n   - EXACT position on the image (top-left, bottom-center, etc.)\n   - What this specific box should be used for\n   - If this is a multi-panel meme, which panel contains this box\n   - The order in which users should fill these boxes when creating a meme\n\n5. Example: Provide 2 authentic examples of text that would typically be used in this meme\n   - Show exactly what text would go in each area\n   - Use examples that follow the established convention for this specific meme\n   - Explicitly indicate which text goes in which position (e.g., \"Box 1 (top): text\")\n\n6. Tone: The emotional tone this meme is typically used with (humorous, ironic, sarcastic, etc.)\n   - Explain any subtleties in how the tone works with this specific template\n\nYour analysis must accurately reflect this specific template's actual usage in meme culture.\nFormat your response as a JSON structure with these keys: name, description, format, box_placement, example, tone\n",
+    "url": "https://i.imgflip.com/23ls.jpg",
+    "box_count": 2
+  },
+  "131940431": {
+    "name": "Gru's Plan",
+    "description": {
+      "visual_elements": "The image is comprised of four panels featuring the character Gru from the animated movie 'Despicable Me,' presenting in front of a flip chart. Panel 1 shows Gru pointing at the board with a satisfied expression. Panel 2 shows a close-up of the board displaying a plan or strategy. Panel 3 shows Gru still pointing, maintaining his original expression, not yet aware of the misstep in his logic. Panel 4 shows a zoomed-out shot of Gru looking at the board in shock or surprise as he realizes the flaw in his plan.",
+      "conventional_usage": "This meme template conveys a narrative of making a plan that seems logical at first but reveals an unexpected flaw or ironic twist in the final panel. The sequence humorously illustrates how a seemingly clever idea can backfire or have an unintended outcome.",
+      "recognizable_elements": "The template is instantly recognizable due to Gru's distinct appearance and the progression from smug confidence to bewildered shock, encapsulating a 'plan goes awry' narrative."
+    },
+    "format": {
+      "content_assignment": [
+        "Box 0 (Panel 1): Introduction of the idea or plan. Usually a setup statement.",
+        "Box 1 (Panel 2): Explanation or detailing of the plan, often elaborating the initial idea.",
+        "Box 2 (Panel 3): Continuation of the plan, maintaining the same thought process.",
+        "Box 3 (Panel 4): Sudden realization of the flaw in the plan, revealing the ironic or humorous twist."
+      ],
+      "box_order": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "relationship": "The text areas typically depict a progression in thinking, with each subsequent panel adding more detail or emphasizing the strategy, leading to an unexpected conclusion that highlights the flawed logic or outcome."
+    },
+    "box_placement": {
+      "Box 0": {
+        "position": "top-left of Panel 1",
+        "use": "Introduction or setup of the plan",
+        "panel": 1,
+        "fill_order": 1
+      },
+      "Box 1": {
+        "position": "center of Panel 2",
+        "use": "Detailed explanation or continuation of the plan",
+        "panel": 2,
+        "fill_order": 2
+      },
+      "Box 2": {
+        "position": "middle-right of Panel 3",
+        "use": "Further elaboration or confidence in the plan",
+        "panel": 3,
+        "fill_order": 3
+      },
+      "Box 3": {
+        "position": "bottom-center of Panel 4",
+        "use": "Revelation of the ironic twist or flaw in the plan",
+        "panel": 4,
+        "fill_order": 4
+      }
+    },
+    "example": [
+      {
+        "Box 0": "Launch a product with a huge marketing campaign",
+        "Box 1": "Capture the entire market",
+        "Box 2": "Profit from the increased demand",
+        "Box 3": "The product is recalled due to a defect"
+      },
+      {
+        "Box 0": "Study all night for the big exam",
+        "Box 1": "Get perfect grades",
+        "Box 2": "Earn a scholarship",
+        "Box 3": "Realize I've been studying the wrong subject"
+      }
+    ],
+    "tone": {
+      "typical_tone": "Humorous and often sarcastic",
+      "subtleties": "The tone typically draws from dramatic irony, where the audience anticipates the flaw or misstep before the character (Gru) does. It\u2019s effective in exaggerating everyday logic failures or misconceptions."
+    },
+    "analyzed": true,
+    "template_id": "131940431",
+    "template_url": "https://i.imgflip.com/26jxvz.jpg",
+    "analysis_prompt": "\nAnalyze this specific meme template: \"Gru's Plan\" (ID: 131940431, Box Count: 4)\nURL: https://i.imgflip.com/26jxvz.jpg\n\nIMPORTANT: Your analysis must be for THIS EXACT TEMPLATE shown in the URL, not any other meme. Look carefully at the image.\n\nFor the \"Gru's Plan\" meme template:\n\n1. Full Name: Verify this is indeed the \"Gru's Plan\" meme before proceeding\n   - If this is not a \"Gru's Plan\" meme, please indicate that it appears to be something else\n\n2. Description: Provide a detailed description focusing on:\n   - The exact visual elements visible in the image (people, objects, scene, expressions)\n   - The conventional meaning/usage of this specific template in internet meme culture\n   - What makes this template instantly recognizable or unique\n\n3. Format: Explain precisely how this template with 4 text boxes is conventionally used:\n   - What specific content typically appears in each text area (be explicit about each box)\n   - The exact position of each text box (top, bottom, left, right, middle, etc.)\n   - The order in which text boxes are typically assigned in meme generators (Box 0, Box 1, etc.)\n   - The relationship between the text areas (contrast, progression, cause-effect, etc.)\n   - The specific format or pattern that makes this meme template effective\n   - Whether each text area represents different perspectives, concepts, or time frames\n\n4. Box Placement: For each box, specify:\n   - EXACT position on the image (top-left, bottom-center, etc.)\n   - What this specific box should be used for\n   - If this is a multi-panel meme, which panel contains this box\n   - The order in which users should fill these boxes when creating a meme\n\n5. Example: Provide 2 authentic examples of text that would typically be used in this meme\n   - Show exactly what text would go in each area\n   - Use examples that follow the established convention for this specific meme\n   - Explicitly indicate which text goes in which position (e.g., \"Box 1 (top): text\")\n\n6. Tone: The emotional tone this meme is typically used with (humorous, ironic, sarcastic, etc.)\n   - Explain any subtleties in how the tone works with this specific template\n\nYour analysis must accurately reflect this specific template's actual usage in meme culture.\nFormat your response as a JSON structure with these keys: name, description, format, box_placement, example, tone\n",
+    "url": "https://i.imgflip.com/26jxvz.jpg",
+    "box_count": 4
+  },
+  "142009471": {
+    "name": "is this butterfly",
+    "description": {
+      "visual_elements": "The template features a still from the anime 'The Brave Fighter of Sun Fighbird,' showing a confused-looking man wearing glasses, identified as a humanoid robot named Yutaro Katori. He is holding up his hand towards a butterfly, with an expression that conveys misunderstanding.",
+      "conventional_meaning": "This meme typically illustrates a situation where someone is misunderstanding or misidentifying something. The humor stems from the absurdity or cluelessness typically associated with such errors.",
+      "recognizable_features": "What makes this meme instantly recognizable is the man's pose and the butterfly, along with the typically used phrase 'is this?' Often, the presentation of these elements in conjunction tells a story of a misinterpretation or confusion."
+    },
+    "format": {
+      "text_content": "Box 0 is used to name or describe the person/thing making the misinterpretation. Box 1 clarifies what the person/living being is actually looking at or dealing with, which is often mistaken for something else. Box 2 contains the 'is this?' line followed by the misidentification.",
+      "text_position": {
+        "Box 0": "Top-left of the image, above the man with glasses.",
+        "Box 1": "Middle-right, usually near or pointing towards the butterfly.",
+        "Box 2": "Bottom-left, where the caption 'is this a butterfly?' originally appears."
+      },
+      "text_order": "The boxes are filled conventionally as follows: Box 0 is assigned first to identify the character, Box 1 is used to indicate the object being questioned, and Box 2 contains the query statement.",
+      "text_relationship": "The text areas represent a contrast between perception (Box 0) and reality (Box 1 and Box 2), hinting at a misunderstanding or erroneous assumption. The juxtaposition of these elements drives the humor, as an obvious answer is ignored or misconstrued.",
+      "pattern": "This meme utilizes a simple proposal-question format to highlight misunderstandings. The contrast between determined assertions in Box 0 and the questions in Box 2 creates comedic tension.",
+      "perspectives": "Each text area represents different perspectives: Box 0 represents the mistaken perspective, Box 1 represents the object of confusion, and Box 2 syntactically connects them."
+    },
+    "box_placement": {
+      "Box 0": {
+        "position": "Top-left",
+        "purpose": "Identify the character or person making the misidentification",
+        "panel": "Single panel image",
+        "fill_order": "First"
+      },
+      "Box 1": {
+        "position": "Middle-right",
+        "purpose": "Identify the object that is mistaken",
+        "panel": "Single panel image",
+        "fill_order": "Second"
+      },
+      "Box 2": {
+        "position": "Bottom-left",
+        "purpose": "'Is this [incorrect identification]?' statement",
+        "panel": "Single panel image",
+        "fill_order": "Third"
+      }
+    },
+    "example": [
+      {
+        "Box 0": "Box 0 (top-left): 'Millennials'",
+        "Box 1": "Box 1 (middle-right): 'Debt and rising rent'",
+        "Box 2": "Box 2 (bottom-left): 'is this financial freedom?'"
+      },
+      {
+        "Box 0": "Box 0 (top-left): 'Online Gamer'",
+        "Box 1": "Box 1 (middle-right): 'Lagging game'",
+        "Box 2": "Box 2 (bottom-left): 'is this a hacker?'"
+      }
+    ],
+    "tone": {
+      "emotional_tone": "Humorous, often marked by irony. The humor arises from highlighting how a character (often a group or individual) misinterprets something obvious or something with an expected connotation.",
+      "subtlety": "The irony is in highlighting the disparity between what is perceived and what is real or obvious, often exaggerating the cluelessness to enhance comedic effect."
+    },
+    "analyzed": true,
+    "template_id": "142009471",
+    "template_url": "https://i.imgflip.com/2cjr7j.jpg",
+    "analysis_prompt": "\nAnalyze this specific meme template: \"is this butterfly\" (ID: 142009471, Box Count: 3)\nURL: https://i.imgflip.com/2cjr7j.jpg\n\nIMPORTANT: Your analysis must be for THIS EXACT TEMPLATE shown in the URL, not any other meme. Look carefully at the image.\n\nFor the \"is this butterfly\" meme template:\n\n1. Full Name: Verify this is indeed the \"is this butterfly\" meme before proceeding\n   - If this is not a \"is this butterfly\" meme, please indicate that it appears to be something else\n\n2. Description: Provide a detailed description focusing on:\n   - The exact visual elements visible in the image (people, objects, scene, expressions)\n   - The conventional meaning/usage of this specific template in internet meme culture\n   - What makes this template instantly recognizable or unique\n\n3. Format: Explain precisely how this template with 3 text boxes is conventionally used:\n   - What specific content typically appears in each text area (be explicit about each box)\n   - The exact position of each text box (top, bottom, left, right, middle, etc.)\n   - The order in which text boxes are typically assigned in meme generators (Box 0, Box 1, etc.)\n   - The relationship between the text areas (contrast, progression, cause-effect, etc.)\n   - The specific format or pattern that makes this meme template effective\n   - Whether each text area represents different perspectives, concepts, or time frames\n\n4. Box Placement: For each box, specify:\n   - EXACT position on the image (top-left, bottom-center, etc.)\n   - What this specific box should be used for\n   - If this is a multi-panel meme, which panel contains this box\n   - The order in which users should fill these boxes when creating a meme\n\n5. Example: Provide 2 authentic examples of text that would typically be used in this meme\n   - Show exactly what text would go in each area\n   - Use examples that follow the established convention for this specific meme\n   - Explicitly indicate which text goes in which position (e.g., \"Box 1 (top): text\")\n\n6. Tone: The emotional tone this meme is typically used with (humorous, ironic, sarcastic, etc.)\n   - Explain any subtleties in how the tone works with this specific template\n\nYour analysis must accurately reflect this specific template's actual usage in meme culture.\nFormat your response as a JSON structure with these keys: name, description, format, box_placement, example, tone\n",
+    "url": "https://i.imgflip.com/2cjr7j.jpg",
     "box_count": 3
   }
 }

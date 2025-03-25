@@ -11,6 +11,11 @@
                 <p class="lead">Browse popular templates from ImgFlip to create custom music-themed memes!</p>
                 <hr class="my-4">
                 <p>Choose a template to generate a customized band or genre meme.</p>
+                <div class="d-flex justify-content-end">
+                    <a href="{{ url_for('main.analyze_templates_batch', count=10) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-cogs"></i> Analyze 10 Templates in Batch
+                    </a>
+                </div>
             </div>
         </div>
     </div>
